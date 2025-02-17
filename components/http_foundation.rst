@@ -362,6 +362,43 @@ analysis purposes. Use the ``anonymize()`` method from the
     $anonymousIpv6 = IpUtils::anonymize($ipv6);
     // $anonymousIpv6 = '2a01:198:603:10::'
 
+If you need even more anonymization, you can use the second and third parameters
+of the ``anonymize()`` method to specify the number of bytes that should be
+anonymized depending on the IP address format::
+
+    $ipv4 = '123.234.235.236';
+    $anonymousIpv4 = IpUtils::anonymize($ipv4, 3);
+    // $anonymousIpv4 = '123.0.0.0'
+
+    $ipv6 = '2a01:198:603:10:396e:4789:8e99:890f';
+    // (you must define the second argument (bytes to anonymize in IPv4 addresses)
+    // even when you are only anonymizing IPv6 addresses)
+    $anonymousIpv6 = IpUtils::anonymize($ipv6, 3, 10);
+    // $anonymousIpv6 = '2a01:198:603::'
+
+.. versionadded:: 7.2
+
+    The ``v4Bytes`` and ``v6Bytes`` parameters of the ``anonymize()`` method
+    were introduced in Symfony 7.2.
+
+Check If an IP Belongs to a CIDR Subnet
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you need to know if an IP address is included in a CIDR subnet, you can use
+the ``checkIp()`` method from :class:`Symfony\\Component\\HttpFoundation\\IpUtils`::
+
+    use Symfony\Component\HttpFoundation\IpUtils;
+
+    $ipv4 = '192.168.1.56';
+    $CIDRv4 = '192.168.1.0/16';
+    $isIpInCIDRv4 = IpUtils::checkIp($ipv4, $CIDRv4);
+    // $isIpInCIDRv4 = true
+
+    $ipv6 = '2001:db8:abcd:1234::1';
+    $CIDRv6 = '2001:db8:abcd::/48';
+    $isIpInCIDRv6 = IpUtils::checkIp($ipv6, $CIDRv6);
+    // $isIpInCIDRv6 = true
+
 Check if an IP Belongs to a Private Subnet
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -925,6 +962,16 @@ The ``JsonResponse`` class sets the ``Content-Type`` header to
     Only methods that respond to GET requests are vulnerable to XSSI 'JSON Hijacking'.
     Methods responding to POST requests only remain unaffected.
 
+.. warning::
+
+    The ``JsonResponse`` constructor exhibits non-standard JSON encoding behavior
+    and will treat ``null`` as an empty object if passed as a constructor argument,
+    despite null being a `valid JSON top-level value`_.
+
+    This behavior cannot be changed without backwards-compatibility concerns, but
+    it's possible to call ``setData`` and pass the value there to opt-out of the
+    behavior.
+
 JSONP Callback
 ~~~~~~~~~~~~~~
 
@@ -1014,9 +1061,10 @@ Learn More
     /session
     /http_cache/*
 
-.. _nginx: https://www.nginx.com/resources/wiki/start/topics/examples/xsendfile/
+.. _nginx: https://mattbrictson.com/blog/accelerated-rails-downloads
 .. _Apache: https://tn123.org/mod_xsendfile/
 .. _`JSON Hijacking`: https://haacked.com/archive/2009/06/25/json-hijacking.aspx/
+.. _`valid JSON top-level value`: https://www.json.org/json-en.html
 .. _OWASP guidelines: https://cheatsheetseries.owasp.org/cheatsheets/AJAX_Security_Cheat_Sheet.html#always-return-json-with-an-object-on-the-outside
 .. _RFC 8674: https://tools.ietf.org/html/rfc8674
 .. _Doctrine Batch processing: https://www.doctrine-project.org/projects/doctrine-orm/en/2.14/reference/batch-processing.html#iterating-results

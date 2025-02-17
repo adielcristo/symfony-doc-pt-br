@@ -10,8 +10,6 @@ have a protocol.
 +---------------------------+-------------------------------------------------------------------+
 | Default invalid message   | Please enter a valid URL.                                         |
 +---------------------------+-------------------------------------------------------------------+
-| Legacy invalid message    | The value {{ value }} is not valid.                               |
-+---------------------------+-------------------------------------------------------------------+
 | Parent type               | :doc:`TextType </reference/forms/types/text>`                     |
 +---------------------------+-------------------------------------------------------------------+
 | Class                     | :class:`Symfony\\Component\\Form\\Extension\\Core\\Type\\UrlType` |
@@ -26,6 +24,13 @@ Field Options
 ~~~~~~~~~~~~~~~~~~~~
 
 **type**: ``string`` **default**: ``http``
+
+Set this value to ``null`` to render the field using a ``<input type="url"/>``,
+allowing the browser to perform local validation before submission.
+
+When this value is neither ``null`` nor an empty string, the form field is
+rendered using a ``<input type="text"/>``. This ensures users can submit the
+form field without specifying the protocol.
 
 If a value is submitted that doesn't begin with some protocol (e.g. ``http://``,
 ``ftp://``, etc), this protocol will be prepended to the string when

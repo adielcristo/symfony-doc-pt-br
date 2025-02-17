@@ -87,7 +87,7 @@ intercept requests to this route:
         namespace App\Controller;
 
         use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-        use Symfony\Component\Routing\Annotation\Route;
+        use Symfony\Component\Routing\Attribute\Route;
 
         class SecurityController extends AbstractController
         {
@@ -148,7 +148,7 @@ this interface::
     use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
     use Symfony\Component\HttpFoundation\Request;
     use Symfony\Component\HttpFoundation\Response;
-    use Symfony\Component\Routing\Annotation\Route;
+    use Symfony\Component\Routing\Attribute\Route;
     use Symfony\Component\Security\Http\LoginLink\LoginLinkHandlerInterface;
 
     class SecurityController extends AbstractController
@@ -194,7 +194,7 @@ controller. Based on this property, the correct user is loaded and a login
 link is created using
 :method:`Symfony\\Component\\Security\\Http\\LoginLink\\LoginLinkHandlerInterface::createLoginLink`.
 
-.. caution::
+.. warning::
 
     It is important to send this link to the user and **not show it directly**,
     as that would allow anyone to login. For instance, use the
@@ -248,7 +248,7 @@ number::
                 return $this->render('security/login_link_sent.html.twig');
             }
 
-            return $this->render('security/login.html.twig');
+            return $this->render('security/request_login_link.html.twig');
         }
 
         // ...
@@ -279,11 +279,13 @@ This will send an email like this to the user:
         // src/Notifier/CustomLoginLinkNotification
         namespace App\Notifier;
 
+        use Symfony\Component\Notifier\Message\EmailMessage;
+        use Symfony\Component\Notifier\Recipient\EmailRecipientInterface;
         use Symfony\Component\Security\Http\LoginLink\LoginLinkNotification;
 
         class CustomLoginLinkNotification extends LoginLinkNotification
         {
-            public function asEmailMessage(EmailRecipientInterface $recipient, string $transport = null): ?EmailMessage
+            public function asEmailMessage(EmailRecipientInterface $recipient, ?string $transport = null): ?EmailMessage
             {
                 $emailMessage = parent::asEmailMessage($recipient, $transport);
 
@@ -639,7 +641,7 @@ user create this POST request (e.g. by clicking a button)::
         <h2>Hi! You are about to login to ...</h2>
 
         <!-- for instance, use a form with hidden fields to
-             create the POST request --->
+             create the POST request -->
         <form action="{{ path('login_check') }}" method="POST">
             <input type="hidden" name="expires" value="{{ expires }}">
             <input type="hidden" name="user" value="{{ user }}">

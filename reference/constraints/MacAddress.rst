@@ -19,18 +19,18 @@ Basic Usage
 -----------
 
 To use the MacAddress validator, apply it to a property on an object that
-will contain a host name.
+can contain a MAC address:
 
 .. configuration-block::
 
     .. code-block:: php-attributes
 
-        // src/Entity/Author.php
+        // src/Entity/Device.php
         namespace App\Entity;
 
         use Symfony\Component\Validator\Constraints as Assert;
 
-        class Author
+        class Device
         {
             #[Assert\MacAddress]
             protected string $mac;
@@ -39,7 +39,7 @@ will contain a host name.
     .. code-block:: yaml
 
         # config/validator/validation.yaml
-        App\Entity\Author:
+        App\Entity\Device:
             properties:
                 mac:
                     - MacAddress: ~
@@ -52,7 +52,7 @@ will contain a host name.
             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
             xsi:schemaLocation="http://symfony.com/schema/dic/constraint-mapping https://symfony.com/schema/dic/constraint-mapping/constraint-mapping-1.0.xsd">
 
-            <class name="App\Entity\Author">
+            <class name="App\Entity\Device">
                 <property name="max">
                     <constraint name="MacAddress"/>
                 </property>
@@ -61,13 +61,13 @@ will contain a host name.
 
     .. code-block:: php
 
-        // src/Entity/Author.php
+        // src/Entity/Device.php
         namespace App\Entity;
 
         use Symfony\Component\Validator\Constraints as Assert;
         use Symfony\Component\Validator\Mapping\ClassMetadata;
 
-        class Author
+        class Device
         {
             // ...
 
@@ -102,5 +102,38 @@ Parameter            Description
 .. include:: /reference/constraints/_normalizer-option.rst.inc
 
 .. include:: /reference/constraints/_payload-option.rst.inc
+
+.. _reference-constraint-mac-address-type:
+
+``type``
+~~~~~~~~
+
+**type**: ``string`` **default**: ``all``
+
+.. versionadded:: 7.1
+
+    The ``type`` option was introduced in Symfony 7.1.
+
+This option defines the kind of MAC addresses that are allowed. There are a lot
+of different possible values based on your needs:
+
+================================  =========================================
+Parameter                         Allowed MAC addresses
+================================  =========================================
+``all``                           All
+``all_no_broadcast``              All except broadcast
+``broadcast``                     Only broadcast
+``local_all``                     Only local
+``local_multicast_no_broadcast``  Only local and multicast except broadcast
+``local_multicast``               Only local and multicast
+``local_no_broadcast``            Only local except broadcast
+``local_unicast``                 Only local and unicast
+``multicast_all``                 Only multicast
+``multicast_no_broadcast``        Only multicast except broadcast
+``unicast_all``                   Only unicast
+``universal_all``                 Only universal
+``universal_unicast``             Only universal and unicast
+``universal_multicast``           Only universal and multicast
+================================  =========================================
 
 .. _`MAC address`: https://en.wikipedia.org/wiki/MAC_address

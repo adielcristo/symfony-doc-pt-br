@@ -1,4 +1,4 @@
-How to Test A Doctrine Repository
+How to Test a Doctrine Repository
 =================================
 
 .. seealso::
@@ -83,7 +83,7 @@ the employee which gets returned by the ``Repository``, which itself gets
 returned by the ``EntityManager``. This way, no real class is involved in
 testing.
 
-Functional Testing of A Doctrine Repository
+Functional Testing of a Doctrine Repository
 -------------------------------------------
 
 In :ref:`functional tests <functional-tests>` you'll make queries to the
@@ -99,7 +99,7 @@ so, get the entity manager via the service container as follows::
 
     class ProductRepositoryTest extends KernelTestCase
     {
-        private EntityManager $entityManager;
+        private ?EntityManager $entityManager;
 
         protected function setUp(): void
         {

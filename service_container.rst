@@ -30,7 +30,7 @@ service's class or interface name. Want to :doc:`log </logging>` something? No p
     use Psr\Log\LoggerInterface;
     use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
     use Symfony\Component\HttpFoundation\Response;
-    use Symfony\Component\Routing\Annotation\Route;
+    use Symfony\Component\Routing\Attribute\Route;
 
     class ProductController extends AbstractController
     {
@@ -117,7 +117,7 @@ inside your controller::
     use App\Service\MessageGenerator;
     use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
     use Symfony\Component\HttpFoundation\Response;
-    use Symfony\Component\Routing\Annotation\Route;
+    use Symfony\Component\Routing\Attribute\Route;
 
     class ProductController extends AbstractController
     {
@@ -259,6 +259,32 @@ as a service in some environments::
     {
         // ...
     }
+
+If you want to exclude a service from being registered in a specific
+environment, you can use the ``#[WhenNot]`` attribute::
+
+    use Symfony\Component\DependencyInjection\Attribute\WhenNot;
+
+    // SomeClass is registered in all environments except "dev"
+
+    #[WhenNot(env: 'dev')]
+    class SomeClass
+    {
+        // ...
+    }
+
+    // you can apply more than one WhenNot attribute to the same class
+
+    #[WhenNot(env: 'dev')]
+    #[WhenNot(env: 'test')]
+    class AnotherClass
+    {
+        // ...
+    }
+
+.. versionadded:: 7.2
+
+    The ``#[WhenNot]`` attribute was introduced in Symfony 7.2.
 
 .. _services-constructor-injection:
 
@@ -407,12 +433,11 @@ example, suppose you want to make the admin email configurable:
       class SiteUpdateManager
       {
           // ...
-    +    private string $adminEmail;
 
           public function __construct(
               private MessageGenerator $messageGenerator,
               private MailerInterface $mailer,
-    +        private string $adminEmail
+    +         private string $adminEmail
           ) {
           }
 
@@ -583,7 +608,7 @@ accessor methods for parameters::
     // adds a new parameter
     $container->setParameter('mailer.transport', 'sendmail');
 
-.. caution::
+.. warning::
 
     The used ``.`` notation is a
     :ref:`Symfony convention <service-naming-conventions>` to make parameters
@@ -1035,20 +1060,32 @@ to them.
 Linting Service Definitions
 ---------------------------
 
-The ``lint:container`` command checks that the arguments injected into services
-match their type declarations. It's useful to run it before deploying your
+The ``lint:container`` command performs additional checks to ensure the container
+is properly configured. It is useful to run this command before deploying your
 application to production (e.g. in your continuous integration server):
 
 .. code-block:: terminal
 
     $ php bin/console lint:container
 
-Checking the types of all service arguments whenever the container is compiled
-can hurt performance. That's why this type checking is implemented in a
-:doc:`compiler pass </service_container/compiler_passes>` called
-``CheckTypeDeclarationsPass`` which is disabled by default and enabled only when
-executing the ``lint:container`` command. If you don't mind the performance
-loss, enable the compiler pass in your application.
+    # optionally, you can force the resolution of environment variables;
+    # the command will fail if any of those environment variables are missing
+    $ php bin/console lint:container --resolve-env-vars
+
+.. versionadded:: 7.2
+
+    The ``--resolve-env-vars`` option was introduced in Symfony 7.2.
+
+Performing those checks whenever the container is compiled can hurt performance.
+That's why they are implemented in :doc:`compiler passes </service_container/compiler_passes>`
+called ``CheckTypeDeclarationsPass`` and ``CheckAliasValidityPass``, which are
+disabled by default and enabled only when executing the ``lint:container`` command.
+If you don't mind the performance loss, you can enable these compiler passes in
+your application.
+
+.. versionadded:: 7.1
+
+    The ``CheckAliasValidityPass`` compiler pass was introduced in Symfony 7.1.
 
 .. _container-public:
 
@@ -1110,6 +1147,21 @@ setting:
                 ->public()
             ;
         };
+
+It is also possible to define a service as public thanks to the ``#[Autoconfigure]``
+attribute. This attribute must be used directly on the class of the service
+you want to configure::
+
+    // src/Service/PublicService.php
+    namespace App\Service;
+
+    use Symfony\Component\DependencyInjection\Attribute\Autoconfigure;
+
+    #[Autoconfigure(public: true)]
+    class PublicService
+    {
+        // ...
+    }
 
 .. _service-psr4-loader:
 
@@ -1369,7 +1421,7 @@ and ``site_update_manager.normal_users``. Thanks to the alias, if you type-hint
 If you want to pass the second, you'll need to :ref:`manually wire the service <services-wire-specific-service>`
 or to create a named :ref:`autowiring alias <autowiring-alias>`.
 
-.. caution::
+.. warning::
 
     If you do *not* create the alias and are :ref:`loading all services from src/ <service-container-services-load-example>`,
     then *three* services have been created (the automatic service + your two services)
@@ -1410,7 +1462,7 @@ Let's say you have the following functional interface::
 You also have a service that defines many methods and one of them is the same
 ``format()`` method of the previous interface::
 
-    // src/Service/MessageFormatterInterface.php
+    // src/Service/MessageUtils.php
     namespace App\Service;
 
     class MessageUtils

@@ -36,7 +36,7 @@ listen on. Each pool can also be run under a different UID and GID:
 
 .. code-block:: ini
 
-    ; /etc/php/7.4/fpm/pool.d/www.conf
+    ; /etc/php/8.3/fpm/pool.d/www.conf
 
     ; a pool called www
     [www]
@@ -44,56 +44,10 @@ listen on. Each pool can also be run under a different UID and GID:
     group = www-data
 
     ; use a unix domain socket
-    listen = /var/run/php/php7.4-fpm.sock
+    listen = /var/run/php/php8.3-fpm.sock
 
     ; or listen on a TCP connection
     ; listen = 127.0.0.1:9000
-
-Apache
-------
-
-If you are running Apache 2.4+, you can use ``mod_proxy_fcgi`` to pass
-incoming requests to PHP-FPM. Install the Apache2 FastCGI mod
-(``libapache2-mod-fastcgi`` on Debian), enable ``mod_proxy`` and
-``mod_proxy_fcgi`` in your Apache configuration, and use the ``SetHandler``
-directive to pass requests for PHP files to PHP FPM:
-
-.. code-block:: apache
-
-    # /etc/apache2/conf.d/example.com.conf
-    <VirtualHost *:80>
-        ServerName example.com
-        ServerAlias www.example.com
-
-        # Uncomment the following line to force Apache to pass the Authorization
-        # header to PHP: required for "basic_auth" under PHP-FPM and FastCGI
-        #
-        # SetEnvIfNoCase ^Authorization$ "(.+)" HTTP_AUTHORIZATION=$1
-
-        <FilesMatch \.php$>
-            # when using PHP-FPM as a unix socket
-            SetHandler proxy:unix:/var/run/php/php7.4-fpm.sock|fcgi://dummy
-
-            # when PHP-FPM is configured to use TCP
-            # SetHandler proxy:fcgi://127.0.0.1:9000
-        </FilesMatch>
-
-        DocumentRoot /var/www/project/public
-        <Directory /var/www/project/public>
-            AllowOverride None
-            Require all granted
-            FallbackResource /index.php
-        </Directory>
-
-        # uncomment the following lines if you install assets as symlinks
-        # or run into problems when compiling LESS/Sass/CoffeeScript assets
-        # <Directory /var/www/project>
-        #     Options FollowSymlinks
-        # </Directory>
-
-        ErrorLog /var/log/apache2/project_error.log
-        CustomLog /var/log/apache2/project_access.log combined
-    </VirtualHost>
 
 Nginx
 -----
@@ -121,7 +75,7 @@ The **minimum configuration** to get your application running under Nginx is:
 
         location ~ ^/index\.php(/|$) {
             # when using PHP-FPM as a unix socket
-            fastcgi_pass unix:/var/run/php/php7.4-fpm.sock;
+            fastcgi_pass unix:/var/run/php/php8.3-fpm.sock;
 
             # when PHP-FPM is configured to use TCP
             # fastcgi_pass 127.0.0.1:9000;
@@ -175,19 +129,73 @@ The **minimum configuration** to get your application running under Nginx is:
     If you have other PHP files in your public directory that need to be executed,
     be sure to include them in the ``location`` block above.
 
-.. caution::
+.. warning::
 
     After you deploy to production, make sure that you **cannot** access the ``index.php``
     script (i.e. ``http://example.com/index.php``).
 
 For advanced Nginx configuration options, read the official `Nginx documentation`_.
 
+Apache
+------
+
+If you are running Apache 2.4+, you can use ``mod_proxy_fcgi`` to pass
+incoming requests to PHP-FPM. Install the Apache2 FastCGI mod
+(``libapache2-mod-fastcgi`` on Debian), enable ``mod_proxy`` and
+``mod_proxy_fcgi`` in your Apache configuration, and use the ``SetHandler``
+directive to pass requests for PHP files to PHP FPM:
+
+.. code-block:: apache
+
+    # /etc/apache2/conf.d/example.com.conf
+    <VirtualHost *:80>
+        ServerName example.com
+        ServerAlias www.example.com
+
+        # Uncomment the following line to force Apache to pass the Authorization
+        # header to PHP: required for "basic_auth" under PHP-FPM and FastCGI
+        #
+        # SetEnvIfNoCase ^Authorization$ "(.+)" HTTP_AUTHORIZATION=$1
+
+        <FilesMatch \.php$>
+            # when using PHP-FPM as a unix socket
+            SetHandler proxy:unix:/var/run/php/php8.3-fpm.sock|fcgi://dummy
+
+            # when PHP-FPM is configured to use TCP
+            # SetHandler proxy:fcgi://127.0.0.1:9000
+        </FilesMatch>
+
+        DocumentRoot /var/www/project/public
+        <Directory /var/www/project/public>
+            AllowOverride None
+            Require all granted
+            FallbackResource /index.php
+        </Directory>
+
+        # uncomment the following lines if you install assets as symlinks
+        # or run into problems when compiling LESS/Sass/CoffeeScript assets
+        # <Directory /var/www/project>
+        #     Options FollowSymlinks
+        # </Directory>
+
+        ErrorLog /var/log/apache2/project_error.log
+        CustomLog /var/log/apache2/project_access.log combined
+    </VirtualHost>
+
+.. note::
+
+    If you are doing some quick tests with Apache, you can also run
+    ``composer require symfony/apache-pack``. This package creates an ``.htaccess``
+    file in the ``public/`` directory with the necessary rewrite rules needed to serve
+    the Symfony application. However, in production, it's recommended to move these
+    rules to the main Apache configuration file (as shown above) to improve performance.
+
 Caddy
 -----
 
 When using Caddy on the server, you can use a configuration like this:
 
-.. code-block:: text
+.. code-block:: nginx
 
     # /etc/caddy/Caddyfile
     example.com, www.example.com {
@@ -198,7 +206,10 @@ When using Caddy on the server, you can use a configuration like this:
         file_server
 
         # otherwise, use PHP-FPM (replace "unix//var/..." with "127.0.0.1:9000" when using TCP)
-        php_fastcgi unix//var/run/php/php7.4-fpm.sock {
+        php_fastcgi unix//var/run/php/php8.3-fpm.sock {
+            # only fall back to root index.php aka front controller.
+            try_files {path} index.php
+
             # optionally set the value of the environment variables used in the application
             # env APP_ENV "prod"
             # env APP_SECRET "<app-secret-id>"

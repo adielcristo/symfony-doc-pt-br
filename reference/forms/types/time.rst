@@ -14,8 +14,6 @@ stored as a ``DateTime`` object, a string, a timestamp or an array.
 +---------------------------+-----------------------------------------------------------------------------+
 | Default invalid message   | Please enter a valid time.                                                  |
 +---------------------------+-----------------------------------------------------------------------------+
-| Legacy invalid message    | The value {{ value }} is not valid.                                         |
-+---------------------------+-----------------------------------------------------------------------------+
 | Parent type               | FormType                                                                    |
 +---------------------------+-----------------------------------------------------------------------------+
 | Class                     | :class:`Symfony\\Component\\Form\\Extension\\Core\\Type\\TimeType`          |
@@ -69,18 +67,22 @@ If your widget option is set to ``choice``, then this field will be represented
 as a series of ``select`` boxes. When the placeholder value is a string,
 it will be used as the **blank value** of all select boxes::
 
-    $builder->add('startTime', 'time', [
+    $builder->add('startTime', TimeType::class, [
         'placeholder' => 'Select a value',
     ]);
 
 Alternatively, you can use an array that configures different placeholder
 values for the hour, minute and second fields::
 
-    $builder->add('startTime', 'time', [
+    $builder->add('startTime', TimeType::class, [
         'placeholder' => [
             'hour' => 'Hour', 'minute' => 'Minute', 'second' => 'Second',
         ],
     ]);
+
+.. seealso::
+
+    See the `with_seconds`_ option on how to enable seconds in the form type.
 
 .. include:: /reference/forms/types/options/hours.rst.inc
 
@@ -115,7 +117,7 @@ of the time. This must be a valid `PHP time format`_.
 
 .. include:: /reference/forms/types/options/model_timezone.rst.inc
 
-.. caution::
+.. warning::
 
     When using different values for ``model_timezone`` and `view_timezone`_,
     a `reference_date`_ must be configured.
@@ -136,7 +138,7 @@ based on this date.
 When no `reference_date`_ is set the ``view_timezone`` defaults to the
 configured `model_timezone`_.
 
-.. caution::
+.. warning::
 
     When using different values for `model_timezone`_ and ``view_timezone``,
     a `reference_date`_ must be configured.
@@ -159,7 +161,7 @@ following:
   will be validated against the form ``hh:mm`` (or ``hh:mm:ss`` if using
   seconds).
 
-.. caution::
+.. warning::
 
     Combining the widget type ``single_text`` and the `with_minutes`_ option
     set to ``false`` can cause unexpected behavior in the client as the

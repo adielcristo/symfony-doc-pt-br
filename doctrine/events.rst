@@ -3,7 +3,7 @@ Doctrine Events
 
 `Doctrine`_, the set of PHP libraries used by Symfony to work with databases,
 provides a lightweight event system to update entities during the application
-execution. These events, called `lifecycle events`_, allow to perform tasks such
+execution. These events, called `lifecycle events`_, allow performing tasks such
 as *"update the createdAt property automatically right before persisting entities
 of this type"*.
 
@@ -24,7 +24,7 @@ There are different ways to listen to these Doctrine events:
   methods are called for all entities, not only those of a certain type. They are
   ideal to **share event logic between entities**.
 
-The performance of each type of listener depends on how many entities applies to:
+The performance of each type of listener depends on how many entities it applies to:
 lifecycle callbacks are faster than entity listeners, which in turn are faster
 than lifecycle listeners.
 
@@ -391,9 +391,9 @@ listener in the Symfony application by creating a new service for it and
             ;
         };
 
-.. versionadded:: 2.7.2
+.. versionadded:: 2.8.0
 
-    The `AsDoctrineListener`_ attribute was introduced in DoctrineBundle 2.7.2.
+    The `AsDoctrineListener`_ attribute was introduced in DoctrineBundle 2.8.0.
 
 .. tip::
 
@@ -404,4 +404,4 @@ listener in the Symfony application by creating a new service for it and
 .. _`lifecycle events`: https://www.doctrine-project.org/projects/doctrine-orm/en/current/reference/events.html#lifecycle-events
 .. _`official docs about Doctrine events`: https://www.doctrine-project.org/projects/doctrine-orm/en/current/reference/events.html
 .. _`DoctrineMongoDBBundle documentation`: https://symfony.com/doc/current/bundles/DoctrineMongoDBBundle/index.html
-.. _`AsDoctrineListener`: https://github.com/doctrine/DoctrineBundle/blob/2.10.x/Attribute/AsDoctrineListener.php
+.. _`AsDoctrineListener`: https://github.com/doctrine/DoctrineBundle/blob/2.12.x/src/Attribute/AsDoctrineListener.php

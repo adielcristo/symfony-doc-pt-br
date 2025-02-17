@@ -3,10 +3,10 @@
 The Bundle System
 =================
 
-.. caution::
+.. warning::
 
     In Symfony versions prior to 4.0, it was recommended to organize your own
-    application code using bundles. This is no longer recommended and bundles
+    application code using bundles. This is :ref:`no longer recommended <best-practice-no-application-bundles>` and bundles
     should only be used to share code and features between multiple applications.
 
 A bundle is similar to a plugin in other software, but even better. The core
@@ -58,7 +58,7 @@ Start by creating a new class called ``AcmeBlogBundle``::
     {
     }
 
-.. caution::
+.. warning::
 
     If your bundle must be compatible with previous Symfony versions you have to
     extend from the :class:`Symfony\\Component\\HttpKernel\\Bundle\\Bundle` instead.
@@ -81,6 +81,8 @@ of the bundle. Now that you've created the bundle, enable it::
     ];
 
 And while it doesn't do anything yet, AcmeBlogBundle is now ready to be used.
+
+.. _bundles-directory-structure:
 
 Bundle Directory Structure
 --------------------------
@@ -114,7 +116,9 @@ to be adjusted if needed:
 ``translations/``
     Holds translations organized by domain and locale (e.g. ``AcmeBlogBundle.en.xlf``).
 
-.. caution::
+.. _bundles-legacy-directory-structure:
+
+.. warning::
 
     The recommended bundle structure was changed in Symfony 5, read the
     `Symfony 4.4 bundle documentation`_ for information about the old

@@ -81,10 +81,20 @@ reflect the real structure of the configuration values::
                 ->defaultTrue()
             ->end()
             ->scalarNode('default_connection')
-                ->defaultValue('default')
+                ->defaultValue('mysql')
+            ->end()
+            ->stringNode('username')
+                ->defaultValue('root')
+            ->end()
+            ->stringNode('password')
+                ->defaultValue('root')
             ->end()
         ->end()
     ;
+
+.. versionadded:: 7.2
+
+    The ``stringNode()`` method was introduced in Symfony 7.2.
 
 The root node itself is an array node, and has children, like the boolean
 node ``auto_connect`` and the scalar node ``default_connection``. In general:
@@ -100,6 +110,7 @@ node definition. Node types are available for:
 * scalar (generic type that includes booleans, strings, integers, floats
   and ``null``)
 * boolean
+* string
 * integer
 * float
 * enum (similar to scalar, but it only allows a finite set of values)
@@ -108,6 +119,10 @@ node definition. Node types are available for:
 
 and are created with ``node($name, $type)`` or their associated shortcut
 ``xxxxNode($name)`` method.
+
+.. versionadded:: 7.2
+
+    Support for the ``string`` type was introduced in Symfony 7.2.
 
 Numeric Node Constraints
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -670,7 +685,7 @@ The separator used in keys is typically ``_`` in YAML and ``-`` in XML.
 For example, ``auto_connect`` in YAML and ``auto-connect`` in XML. The
 normalization would make both of these ``auto_connect``.
 
-.. caution::
+.. warning::
 
     The target key will not be altered if it's mixed like
     ``foo-bar_moo`` or if it already exists.
@@ -889,7 +904,7 @@ Otherwise the result is a clean array of configuration values::
         $configs
     );
 
-.. caution::
+.. warning::
 
     When processing the configuration tree, the processor assumes that the top
     level array key (which matches the extension name) is already stripped off.

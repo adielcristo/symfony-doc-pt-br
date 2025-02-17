@@ -10,8 +10,6 @@ field and defines the same options.
 +---------------------------+----------------------------------------------------------------------+
 | Default invalid message   | The selected choice is invalid.                                      |
 +---------------------------+----------------------------------------------------------------------+
-| Legacy invalid message    | The value {{ value }} is not valid.                                  |
-+---------------------------+----------------------------------------------------------------------+
 | Parent type               | :doc:`ChoiceType </reference/forms/types/choice>`                    |
 +---------------------------+----------------------------------------------------------------------+
 | Class                     | :class:`Symfony\\Component\\Form\\Extension\\Core\\Type\\EnumType`   |
@@ -66,7 +64,7 @@ implement ``TranslatableInterface`` to translate or display custom labels::
         case Center = 'Center aligned';
         case Right = 'Right aligned';
 
-        public function trans(TranslatorInterface $translator, string $locale = null): string
+        public function trans(TranslatorInterface $translator, ?string $locale = null): string
         {
             // Translate enum from name (Left, Center or Right)
             return $translator->trans($this->name, locale: $locale);
@@ -95,6 +93,22 @@ Inherited Options
 -----------------
 
 These options inherit from the :doc:`ChoiceType </reference/forms/types/choice>`:
+
+.. include:: /reference/forms/types/options/choice_attr.rst.inc
+
+.. include:: /reference/forms/types/options/choice_filter.rst.inc
+
+.. include:: /reference/forms/types/options/choice_label.rst.inc
+
+.. include:: /reference/forms/types/options/choice_loader.rst.inc
+
+.. include:: /reference/forms/types/options/choice_name.rst.inc
+
+.. include:: /reference/forms/types/options/choice_translation_domain_enabled.rst.inc
+
+.. include:: /reference/forms/types/options/choice_translation_parameters.rst.inc
+
+.. include:: /reference/forms/types/options/choice_value.rst.inc
 
 .. include:: /reference/forms/types/options/error_bubbling.rst.inc
 

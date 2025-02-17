@@ -23,7 +23,7 @@ class::
     namespace App\Controller;
 
     use Symfony\Component\HttpFoundation\Response;
-    use Symfony\Component\Routing\Annotation\Route;
+    use Symfony\Component\Routing\Attribute\Route;
 
     class LuckyController
     {
@@ -176,7 +176,8 @@ These are used for rendering templates, sending emails, querying the database an
 any other "work" you can think of.
 
 If you need a service in a controller, type-hint an argument with its class
-(or interface) name. Symfony will automatically pass you the service you need::
+(or interface) name and Symfony will inject it automatically. This requires
+your :doc:`controller to be registered as a service </controller/service>`::
 
     use Psr\Log\LoggerInterface;
     use Symfony\Component\HttpFoundation\Response;
@@ -371,7 +372,7 @@ attribute, arguments of your controller's action can be automatically fulfilled:
     // ...
 
     public function dashboard(
-        #[MapQueryParameter(filter: \FILTER_VALIDATE_REGEXP, options: ['regexp' => '/^\w++$/'])] string $firstName,
+        #[MapQueryParameter(filter: \FILTER_VALIDATE_REGEXP, options: ['regexp' => '/^\w+$/'])] string $firstName,
         #[MapQueryParameter] string $lastName,
         #[MapQueryParameter(filter: \FILTER_VALIDATE_INT)] int $age,
     ): Response
@@ -392,7 +393,7 @@ optional validation constraints::
 
     use Symfony\Component\Validator\Constraints as Assert;
 
-    class UserDTO
+    class UserDto
     {
         public function __construct(
             #[Assert\NotBlank]
@@ -417,7 +418,7 @@ attribute in your controller::
     // ...
 
     public function dashboard(
-        #[MapQueryString] UserDTO $userDto
+        #[MapQueryString] UserDto $userDto
     ): Response
     {
         // ...
@@ -434,13 +435,29 @@ HTTP status to return if the validation fails::
         #[MapQueryString(
             validationGroups: ['strict', 'edit'],
             validationFailedStatusCode: Response::HTTP_UNPROCESSABLE_ENTITY
-        )] UserDTO $userDto
+        )] UserDto $userDto
     ): Response
     {
         // ...
     }
 
 The default status code returned if the validation fails is 404.
+
+If you need a valid DTO even when the request query string is empty, set a
+default value for your controller arguments::
+
+    use App\Model\UserDto;
+    use Symfony\Component\HttpFoundation\Response;
+    use Symfony\Component\HttpKernel\Attribute\MapQueryString;
+
+    // ...
+
+    public function dashboard(
+        #[MapQueryString] UserDto $userDto = new UserDto()
+    ): Response
+    {
+        // ...
+    }
 
 .. _controller-mapping-request-payload:
 
@@ -470,7 +487,7 @@ attribute::
     // ...
 
     public function dashboard(
-        #[MapRequestPayload] UserDTO $userDto
+        #[MapRequestPayload] UserDto $userDto
     ): Response
     {
         // ...
@@ -485,7 +502,7 @@ your DTO::
             serializationContext: ['...'],
             resolver: App\Resolver\UserDtoResolver
         )]
-        UserDTO $userDto
+        UserDto $userDto
     ): Response
     {
         // ...
@@ -503,7 +520,7 @@ the validation fails as well as supported payload formats::
             acceptFormat: 'json',
             validationGroups: ['strict', 'read'],
             validationFailedStatusCode: Response::HTTP_NOT_FOUND
-        )] UserDTO $userDto
+        )] UserDto $userDto
     ): Response
     {
         // ...
@@ -523,21 +540,153 @@ Make sure to install `phpstan/phpdoc-parser`_ and `phpdocumentor/type-resolver`_
 if you want to map a nested array of specific DTOs::
 
     public function dashboard(
-        #[MapRequestPayload()] EmployeesDTO $employeesDto
+        #[MapRequestPayload] EmployeesDto $employeesDto
     ): Response
     {
         // ...
     }
 
-    final class EmployeesDTO
+    final class EmployeesDto
     {
         /**
-         * @param UserDTO[] $users
+         * @param UserDto[] $users
          */
         public function __construct(
             public readonly array $users = []
         ) {}
     }
+
+Instead of returning an array of DTO objects, you can tell Symfony to transform
+each DTO object into an array and return something like this:
+
+.. code-block:: json
+
+    [
+        {
+            "firstName": "John",
+            "lastName": "Smith",
+            "age": 28
+        },
+        {
+            "firstName": "Jane",
+            "lastName": "Doe",
+            "age": 30
+        }
+    ]
+
+To do so, map the parameter as an array and configure the type of each element
+using the ``type`` option of the attribute::
+
+    public function dashboard(
+        #[MapRequestPayload(type: UserDto::class)] array $users
+    ): Response
+    {
+        // ...
+    }
+
+.. versionadded:: 7.1
+
+    The ``type`` option of ``#[MapRequestPayload]`` was introduced in Symfony 7.1.
+
+.. _controller_map-uploaded-file:
+
+Mapping Uploaded Files
+~~~~~~~~~~~~~~~~~~~~~~
+
+Symfony provides an attribute called ``#[MapUploadedFile]`` to map one or more
+``UploadedFile`` objects to controller arguments::
+
+    namespace App\Controller;
+
+    use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+    use Symfony\Component\HttpFoundation\File\UploadedFile;
+    use Symfony\Component\HttpFoundation\Response;
+    use Symfony\Component\HttpKernel\Attribute\MapUploadedFile;
+    use Symfony\Component\Routing\Attribute\Route;
+
+    class UserController extends AbstractController
+    {
+        #[Route('/user/picture', methods: ['PUT'])]
+        public function changePicture(
+            #[MapUploadedFile] UploadedFile $picture,
+        ): Response {
+            // ...
+        }
+    }
+
+In this example, the associated :doc:`argument resolver <controller/value_resolver>`
+fetches the ``UploadedFile`` based on the argument name (``$picture``). If no file
+is submitted, an ``HttpException`` is thrown. You can change this by making the
+controller argument nullable:
+
+.. code-block:: php-attributes
+
+    #[MapUploadedFile]
+    ?UploadedFile $document
+
+The ``#[MapUploadedFile]`` attribute also allows to pass a list of constraints
+to apply to the uploaded file::
+
+    namespace App\Controller;
+
+    use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+    use Symfony\Component\HttpFoundation\File\UploadedFile;
+    use Symfony\Component\HttpFoundation\Response;
+    use Symfony\Component\HttpKernel\Attribute\MapUploadedFile;
+    use Symfony\Component\Routing\Attribute\Route;
+    use Symfony\Component\Validator\Constraints as Assert;
+
+    class UserController extends AbstractController
+    {
+        #[Route('/user/picture', methods: ['PUT'])]
+        public function changePicture(
+            #[MapUploadedFile([
+                new Assert\File(mimeTypes: ['image/png', 'image/jpeg']),
+                new Assert\Image(maxWidth: 3840, maxHeight: 2160),
+            ])]
+            UploadedFile $picture,
+        ): Response {
+            // ...
+        }
+    }
+
+The validation constraints are checked before injecting the ``UploadedFile`` into
+the controller argument. If there's a constraint violation, an ``HttpException``
+is thrown and the controller's action is not executed.
+
+If you need to upload a collection of files, map them to an array or a variadic
+argument. The given constraint will be applied to all files and if any of them
+fails, an ``HttpException`` is thrown:
+
+.. code-block:: php-attributes
+
+    #[MapUploadedFile(new Assert\File(mimeTypes: ['application/pdf']))]
+    array $documents
+
+    #[MapUploadedFile(new Assert\File(mimeTypes: ['application/pdf']))]
+    UploadedFile ...$documents
+
+Use the ``name`` option to rename the uploaded file to a custom value:
+
+.. code-block:: php-attributes
+
+    #[MapUploadedFile(name: 'something-else')]
+    UploadedFile $document
+
+In addition, you can change the status code of the HTTP exception thrown when
+there are constraint violations:
+
+.. code-block:: php-attributes
+
+    #[MapUploadedFile(
+        constraints: new Assert\File(maxSize: '2M'),
+        validationFailedStatusCode: Response::HTTP_REQUEST_ENTITY_TOO_LARGE
+    )]
+    UploadedFile $document
+
+.. versionadded:: 7.1
+
+    The ``#[MapUploadedFile]`` attribute was introduced in Symfony 7.1.
 
 Managing the Session
 --------------------
@@ -639,6 +788,14 @@ response types.  Some of these are mentioned below. To learn more about the
 ``Request`` and ``Response`` (and different ``Response`` classes), see the
 :ref:`HttpFoundation component documentation <component-http-foundation-request>`.
 
+.. note::
+
+    Technically, a controller can return a value other than a ``Response``.
+    However, your application is responsible for transforming that value into a
+    ``Response`` object. This is handled using :doc:`events </event_dispatcher>`
+    (specifically the :ref:`kernel.view event <component-http-kernel-kernel-view>`),
+    an advanced feature you'll learn about later.
+
 Accessing Configuration Values
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -731,7 +888,7 @@ method::
 
     use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
     use Symfony\Component\HttpFoundation\Response;
-    use Symfony\Component\Routing\Annotation\Route;
+    use Symfony\Component\Routing\Attribute\Route;
     use Symfony\Component\WebLink\Link;
 
     class HomepageController extends AbstractController
@@ -741,7 +898,7 @@ method::
         {
             $response = $this->sendEarlyHints([
                 new Link(rel: 'preconnect', href: 'https://fonts.google.com'),
-                (new Link(href: '/style.css'))->withAttribute('as', 'stylesheet'),
+                (new Link(href: '/style.css'))->withAttribute('as', 'style'),
                 (new Link(href: '/script.js'))->withAttribute('as', 'script'),
             ]);
 
@@ -797,6 +954,6 @@ Learn more about Controllers
 .. _`Early hints`: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/103
 .. _`SAPI`: https://www.php.net/manual/en/function.php-sapi-name.php
 .. _`FrankenPHP`: https://frankenphp.dev
-.. _`Validate Filters`: https://www.php.net/manual/en/filter.filters.validate.php
+.. _`Validate Filters`: https://www.php.net/manual/en/filter.constants.php
 .. _`phpstan/phpdoc-parser`: https://packagist.org/packages/phpstan/phpdoc-parser
 .. _`phpdocumentor/type-resolver`: https://packagist.org/packages/phpdocumentor/type-resolver

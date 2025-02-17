@@ -1,11 +1,11 @@
-The String Component
-====================
+Creating and Manipulating Strings
+=================================
 
-    The String component provides a single object-oriented API to work with
-    three "unit systems" of strings: bytes, code points and grapheme clusters.
+Symfony provides an object-oriented API to work with Unicode strings (as bytes,
+code points and grapheme clusters). This API is available via the String component,
+which you must first install in your application:
 
-Installation
-------------
+.. _installation:
 
 .. code-block:: terminal
 
@@ -222,8 +222,8 @@ Methods to Change Case
     u('foo BAR bάz')->localeUpper('el'); // 'FOO BAR BAZ'
 
     // changes all graphemes/code points to "title case"
-    u('foo ijssel')->title();     // 'Foo ijssel'
-    u('foo ijssel')->title(true); // 'Foo Ijssel'
+    u('foo ijssel')->title();               // 'Foo ijssel'
+    u('foo ijssel')->title(allWords: true); // 'Foo Ijssel'
     // changes all graphemes/code points to "title case" according to locale-specific case mappings
     u('foo ijssel')->localeTitle('en'); // 'Foo ijssel'
     u('foo ijssel')->localeTitle('nl'); // 'Foo IJssel'
@@ -232,6 +232,8 @@ Methods to Change Case
     u('Foo: Bar-baz.')->camel(); // 'fooBarBaz'
     // changes all graphemes/code points to snake_case
     u('Foo: Bar-baz.')->snake(); // 'foo_bar_baz'
+    // changes all graphemes/code points to kebab-case
+    u('Foo: Bar-baz.')->kebab(); // 'foo-bar-baz'
     // other cases can be achieved by chaining methods. E.g. PascalCase:
     u('Foo: Bar-baz.')->camel()->title(); // 'FooBarBaz'
 
@@ -239,6 +241,10 @@ Methods to Change Case
 
     The ``localeLower()``, ``localeUpper()`` and ``localeTitle()`` methods were
     introduced in Symfony 7.1.
+
+.. versionadded:: 7.2
+
+    The ``kebab()`` method was introduced in Symfony 7.2.
 
 The methods of all string classes are case-sensitive by default. You can perform
 case-insensitive operations with the ``ignoreCase()`` method::
@@ -269,20 +275,20 @@ Methods to Append and Prepend
     u('UserControllerController')->ensureEnd('Controller'); // 'UserController'
 
     // returns the contents found before/after the first occurrence of the given string
-    u('hello world')->before('world');   // 'hello '
-    u('hello world')->before('o');       // 'hell'
-    u('hello world')->before('o', true); // 'hello'
+    u('hello world')->before('world');                  // 'hello '
+    u('hello world')->before('o');                      // 'hell'
+    u('hello world')->before('o', includeNeedle: true); // 'hello'
 
-    u('hello world')->after('hello');   // ' world'
-    u('hello world')->after('o');       // ' world'
-    u('hello world')->after('o', true); // 'o world'
+    u('hello world')->after('hello');                  // ' world'
+    u('hello world')->after('o');                      // ' world'
+    u('hello world')->after('o', includeNeedle: true); // 'o world'
 
     // returns the contents found before/after the last occurrence of the given string
-    u('hello world')->beforeLast('o');       // 'hello w'
-    u('hello world')->beforeLast('o', true); // 'hello wo'
+    u('hello world')->beforeLast('o');                      // 'hello w'
+    u('hello world')->beforeLast('o', includeNeedle: true); // 'hello wo'
 
-    u('hello world')->afterLast('o');       // 'rld'
-    u('hello world')->afterLast('o', true); // 'orld'
+    u('hello world')->afterLast('o');                      // 'rld'
+    u('hello world')->afterLast('o', includeNeedle: true); // 'orld'
 
 Methods to Pad and Trim
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -395,17 +401,26 @@ Methods to Join, Split, Truncate and Reverse
     u('Lorem Ipsum')->truncate(80);            // 'Lorem Ipsum'
     // the second argument is the character(s) added when a string is cut
     // (the total length includes the length of this character(s))
+    // (note that '…' is a single character that includes three dots; it's not '...')
     u('Lorem Ipsum')->truncate(8, '…');        // 'Lorem I…'
-    // if the third argument is false, the last word before the cut is kept
-    // even if that generates a string longer than the desired length
-    u('Lorem Ipsum')->truncate(8, '…', false); // 'Lorem Ipsum'
+    // the third optional argument defines how to cut words when the length is exceeded
+    // the default value is TruncateMode::Char which cuts the string at the exact given length
+    u('Lorem ipsum dolor sit amet')->truncate(8, cut: TruncateMode::Char);       // 'Lorem ip'
+    // returns up to the last complete word that fits in the given length without surpassing it
+    u('Lorem ipsum dolor sit amet')->truncate(8, cut: TruncateMode::WordBefore); // 'Lorem'
+    // returns up to the last complete word that fits in the given length, surpassing it if needed
+    u('Lorem ipsum dolor sit amet')->truncate(8, cut: TruncateMode::WordAfter);   // 'Lorem ipsum'
+
+.. versionadded:: 7.2
+
+    The ``TruncateMode`` parameter for truncate function was introduced in Symfony 7.2.
 
 ::
 
     // breaks the string into lines of the given length
-    u('Lorem Ipsum')->wordwrap(4);             // 'Lorem\nIpsum'
+    u('Lorem Ipsum')->wordwrap(4);                  // 'Lorem\nIpsum'
     // by default it breaks by white space; pass TRUE to break unconditionally
-    u('Lorem Ipsum')->wordwrap(4, "\n", true); // 'Lore\nm\nIpsu\nm'
+    u('Lorem Ipsum')->wordwrap(4, "\n", cut: true); // 'Lore\nm\nIpsu\nm'
 
     // replaces a portion of the string with the given contents:
     // the second argument is the position where the replacement starts;
@@ -419,7 +434,7 @@ Methods to Join, Split, Truncate and Reverse
     u('0123456789')->chunk(3);  // ['012', '345', '678', '9']
 
     // reverses the order of the string contents
-    u('foo bar')->reverse(); // 'rab oof'
+    u('foo bar')->reverse();  // 'rab oof'
     u('さよなら')->reverse(); // 'らなよさ'
 
 Methods Added by ByteString
@@ -507,6 +522,13 @@ requested during the program execution. You can also create lazy strings from a
     // hash computation only if it's needed
     $lazyHash = LazyString::fromStringable(new Hash());
 
+Working with Emojis
+-------------------
+
+These contents have been moved to the :doc:`Emoji component docs </emoji>`.
+
+.. _string-slugger:
+
 Slugger
 -------
 
@@ -579,7 +601,8 @@ the injected slugger is the same as the request locale::
 Slug Emojis
 ~~~~~~~~~~~
 
-You can transform any emojis into their textual representation::
+You can also combine the :ref:`emoji transliterator <emoji-transliteration>`
+with the slugger to transform any emojis into their textual representation::
 
     use Symfony\Component\String\Slugger\AsciiSlugger;
 
@@ -593,7 +616,7 @@ You can transform any emojis into their textual representation::
     // $slug = 'un-chat-qui-sourit-chat-noir-et-un-tete-de-lion-vont-au-parc-national';
 
 If you want to use a specific locale for the emoji, or to use the short codes
-from GitHub or Slack, use the first argument of ``withEmoji()`` method::
+from GitHub, Gitlab or Slack, use the first argument of ``withEmoji()`` method::
 
     use Symfony\Component\String\Slugger\AsciiSlugger;
 
@@ -637,11 +660,28 @@ class to convert English words from/to singular/plural with confidence::
 The value returned by both methods is always an array because sometimes it's not
 possible to determine a unique singular/plural form for the given word.
 
+Symfony also provides inflectors for other languages::
+
+    use Symfony\Component\String\Inflector\FrenchInflector;
+
+    $inflector = new FrenchInflector();
+    $result = $inflector->singularize('souris'); // ['souris']
+    $result = $inflector->pluralize('hôpital');  // ['hôpitaux']
+
+    use Symfony\Component\String\Inflector\SpanishInflector;
+
+    $inflector = new SpanishInflector();
+    $result = $inflector->singularize('aviones'); // ['avión']
+    $result = $inflector->pluralize('miércoles'); // ['miércoles']
+
+.. versionadded:: 7.2
+
+    The ``SpanishInflector`` class was introduced in Symfony 7.2.
+
 .. note::
 
-    Symfony also provides a :class:`Symfony\\Component\\String\\Inflector\\FrenchInflector`
-    and an :class:`Symfony\\Component\\String\\Inflector\\InflectorInterface` if
-    you need to implement your own inflector.
+    Symfony provides an :class:`Symfony\\Component\\String\\Inflector\\InflectorInterface`
+    in case you need to implement your own inflector.
 
 .. _`ASCII`: https://en.wikipedia.org/wiki/ASCII
 .. _`Unicode`: https://en.wikipedia.org/wiki/Unicode

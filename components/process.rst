@@ -108,6 +108,12 @@ You can configure the options passed to the ``other_options`` argument of
     // this option allows a subprocess to continue running after the main script exited
     $process->setOptions(['create_new_console' => true]);
 
+.. warning::
+
+    Most of the options defined by ``proc_open()`` (such as ``create_new_console``
+    and ``suppress_errors``) are only supported on Windows operating systems.
+    Check out the `PHP documentation for proc_open()`_ before using them.
+
 Using Features From the OS Shell
 --------------------------------
 
@@ -505,6 +511,20 @@ When running a program asynchronously, you can send it POSIX signals with the
     // will send a SIGKILL to the process
     $process->signal(SIGKILL);
 
+You can make the process ignore signals by using the
+:method:`Symfony\\Component\\Process\\Process::setIgnoredSignals`
+method. The given signals won't be propagated to the child process::
+
+    use Symfony\Component\Process\Process;
+
+    $process = new Process(['find', '/', '-name', 'rabbit']);
+    $process->setIgnoredSignals([SIGKILL, SIGUSR1]);
+
+.. versionadded:: 7.1
+
+    The :method:`Symfony\\Component\\Process\\Process::setIgnoredSignals`
+    method was introduced in Symfony 7.1.
+
 Process Pid
 -----------
 
@@ -532,7 +552,7 @@ Use :method:`Symfony\\Component\\Process\\Process::disableOutput` and
     $process->disableOutput();
     $process->run();
 
-.. caution::
+.. warning::
 
     You cannot enable or disable the output while the process is running.
 
@@ -592,3 +612,4 @@ whether `TTY`_ is supported on the current operating system::
 .. _`PHP streams`: https://www.php.net/manual/en/book.stream.php
 .. _`output_buffering`: https://www.php.net/manual/en/outcontrol.configuration.php
 .. _`TTY`: https://en.wikipedia.org/wiki/Tty_(unix)
+.. _`PHP documentation for proc_open()`: https://www.php.net/manual/en/function.proc-open.php

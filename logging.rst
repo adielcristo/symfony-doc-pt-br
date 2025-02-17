@@ -1,9 +1,10 @@
 Logging
 =======
 
-Symfony comes with a minimalist `PSR-3`_ logger: :class:`Symfony\\Component\\HttpKernel\\Log\\Logger`.
-In conformance with `the twelve-factor app methodology`_, it sends messages starting from the
-``WARNING`` level to `stderr`_.
+Symfony comes with two minimalist `PSR-3`_ loggers: :class:`Symfony\\Component\\HttpKernel\\Log\\Logger`
+for the HTTP context and :class:`Symfony\\Component\\Console\\Logger\\ConsoleLogger` for the
+CLI context. In conformance with `the twelve-factor app methodology`_, they send messages
+starting from the ``WARNING`` level to `stderr`_.
 
 The minimal log level can be changed by setting the ``SHELL_VERBOSITY`` environment variable:
 
@@ -17,8 +18,13 @@ The minimal log level can be changed by setting the ``SHELL_VERBOSITY`` environm
 =========================  =================
 
 The minimum log level, the default output and the log format can also be changed by
-passing the appropriate arguments to the constructor of :class:`Symfony\\Component\\HttpKernel\\Log\\Logger`.
-To do so, :ref:`override the "logger" service definition <service-psr4-loader>`.
+passing the appropriate arguments to the constructor of :class:`Symfony\\Component\\HttpKernel\\Log\\Logger`
+and :class:`Symfony\\Component\\Console\\Logger\\ConsoleLogger`.
+
+The :class:`Symfony\\Component\\HttpKernel\\Log\\Logger` class is available through the ``logger`` service.
+To pass your configuration, you can :ref:`override the "logger" service definition <service-psr4-loader>`.
+
+For more information about ``ConsoleLogger``, see :doc:`/components/console/logger`.
 
 Logging a Message
 -----------------
@@ -155,6 +161,7 @@ to write logs using the :phpfunction:`syslog` function:
     .. code-block:: php
 
         // config/packages/prod/monolog.php
+        use Psr\Log\LogLevel;
         use Symfony\Config\MonologConfig;
 
         return static function (MonologConfig $monolog): void {
@@ -163,13 +170,13 @@ to write logs using the :phpfunction:`syslog` function:
                 ->type('stream')
                 // log to var/logs/(environment).log
                 ->path('%kernel.logs_dir%/%kernel.environment%.log')
-                // log *all* messages (debug is lowest level)
-                ->level('debug');
+                // log *all* messages (LogLevel::DEBUG is lowest level)
+                ->level(LogLevel::DEBUG);
 
             $monolog->handler('syslog_handler')
                 ->type('syslog')
                 // log error-level messages and higher
-                ->level('error');
+                ->level(LogLevel::ERROR);
         };
 
 This defines a *stack* of handlers and each handler is called in the order that it's
@@ -254,13 +261,14 @@ one of the messages reaches an ``action_level``. Take this example:
     .. code-block:: php
 
         // config/packages/prod/monolog.php
+        use Psr\Log\LogLevel;
         use Symfony\Config\MonologConfig;
 
         return static function (MonologConfig $monolog): void {
             $monolog->handler('filter_for_errors')
                 ->type('fingers_crossed')
                 // if *one* log is error or higher, pass *all* to file_log
-                ->actionLevel('error')
+                ->actionLevel(LogLevel::ERROR)
                 ->handler('file_log')
             ;
 
@@ -268,17 +276,17 @@ one of the messages reaches an ``action_level``. Take this example:
             $monolog->handler('file_log')
                 ->type('stream')
                 ->path('%kernel.logs_dir%/%kernel.environment%.log')
-                ->level('debug')
+                ->level(LogLevel::DEBUG)
             ;
 
             // still passed *all* logs, and still only logs error or higher
             $monolog->handler('syslog_handler')
                 ->type('syslog')
-                ->level('error')
+                ->level(LogLevel::ERROR)
             ;
         };
 
-Now, if even one log entry has an ``error`` level or higher, then *all* log entries
+Now, if even one log entry has an ``LogLevel::ERROR`` level or higher, then *all* log entries
 for that request are saved to a file via the ``file_log`` handler. That means that
 your log file will contain *all* the details about the problematic request - making
 debugging much easier!
@@ -349,13 +357,14 @@ option of your handler to ``rotating_file``:
     .. code-block:: php
 
         // config/packages/prod/monolog.php
+        use Psr\Log\LogLevel;
         use Symfony\Config\MonologConfig;
 
         return static function (MonologConfig $monolog): void {
             $monolog->handler('main')
                 ->type('rotating_file')
                 ->path('%kernel.logs_dir%/%kernel.environment%.log')
-                ->level('debug')
+                ->level(LogLevel::DEBUG)
                 // max number of log files to keep
                 // defaults to zero, which means infinite files
                 ->maxFiles(10);

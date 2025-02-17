@@ -1,4 +1,4 @@
-Upgrading a Major Version (e.g. 5.4.0 to 6.0.0)
+Upgrading a Major Version (e.g. 6.4.0 to 7.0.0)
 ===============================================
 
 Every two years, Symfony releases a new major version release (the first number
@@ -27,10 +27,10 @@ backwards incompatible changes. To accomplish this, the "old" (e.g. functions,
 classes, etc) code still works, but is marked as *deprecated*, indicating that
 it will be removed/changed in the future and that you should stop using it.
 
-When the major version is released (e.g. 6.0.0), all deprecated features and
+When the major version is released (e.g. 7.0.0), all deprecated features and
 functionality are removed. So, as long as you've updated your code to stop
 using these deprecated features in the last version before the major (e.g.
-``5.4.*``), you should be able to upgrade without a problem. That means that
+``6.4.*``), you should be able to upgrade without a problem. That means that
 you should first :doc:`upgrade to the last minor version </setup/upgrade_minor>`
 (e.g. 5.4) so that you can see *all* the deprecations.
 
@@ -98,7 +98,7 @@ Now, you can start fixing the notices:
 Once you fixed them all, the command ends with ``0`` (success) and you're
 done!
 
-.. caution::
+.. warning::
 
     You will probably see many deprecations about incompatible native
     return types. See :ref:`Add Native Return Types <upgrading-native-return-types>`
@@ -107,7 +107,7 @@ done!
 .. sidebar:: Using the Weak Deprecations Mode
 
     Sometimes, you can't fix all deprecations (e.g. something was deprecated
-    in 5.4 and you still need to support 5.3). In these cases, you can still
+    in 6.4 and you still need to support 6.3). In these cases, you can still
     use the bridge to fix as many deprecations as possible and then allow
     more of them to make your tests pass again. You can do this by using the
     ``SYMFONY_DEPRECATIONS_HELPER`` env variable:
@@ -144,12 +144,10 @@ starting with ``symfony/`` to the new major version:
           "...": "...",
 
           "require": {
-    -         "symfony/cache": "5.4.*",
-    +         "symfony/cache": "6.0.*",
-    -         "symfony/config": "5.4.*",
-    +         "symfony/config": "6.0.*",
-    -         "symfony/console": "5.4.*",
-    +         "symfony/console": "6.0.*",
+    -         "symfony/config": "6.4.*",
+    +         "symfony/config": "7.0.*",
+    -         "symfony/console": "6.4.*",
+    +         "symfony/console": "7.0.*",
               "...": "...",
 
               "...": "A few libraries starting with symfony/ follow their own
@@ -157,24 +155,50 @@ starting with ``symfony/`` to the new major version:
                       symfony/ux-[...], symfony/[...]-bundle).
                       You do not need to update these versions: you can
                       upgrade them independently whenever you want",
-              "symfony/monolog-bundle": "^3.5",
+              "symfony/monolog-bundle": "^3.10",
           },
           "...": "...",
       }
 
-At the bottom of your ``composer.json`` file, in the ``extra`` block you can
-find a data setting for the Symfony version. Make sure to also upgrade
-this one. For instance, update it to ``6.0.*`` to upgrade to Symfony 6.0:
+A more efficient way to handle Symfony dependency updates is by setting the
+``extra.symfony.require`` configuration option in your ``composer.json`` file.
+In Symfony applications using :doc:`Symfony Flex </setup/flex>`, this setting
+restricts Symfony packages to a single specific version, improving both
+dependency management and Composer update performance:
 
 .. code-block:: diff
 
-      "extra": {
-          "symfony": {
-              "allow-contrib": false,
-    -       "require": "5.4.*"
-    +       "require": "6.0.*"
-          }
+      {
+          "...": "...",
+
+          "require": {
+    -         "symfony/cache": "7.0.*",
+    +         "symfony/cache": "*",
+    -         "symfony/config": "7.0.*",
+    +         "symfony/config": "*",
+    -         "symfony/console": "7.0.*",
+    +         "symfony/console": "*",
+              "...": "...",
+          },
+          "...": "...",
+
+    +     "extra": {
+    +         "symfony": {
+    +             "require": "7.0.*"
+    +         }
+    +     }
       }
+
+.. warning::
+
+    Tools like `dependabot`_ may ignore this setting and upgrade Symfony
+    dependencies. For more details, see this `GitHub issue about dependabot`_.
+
+.. tip::
+
+    If a more recent minor version is available (e.g. ``6.4``) you can use that
+    version directly and skip the older releases (``6.0``, ``6.1``, etc.).
+    Check the `maintained Symfony versions`_.
 
 Next, use Composer to download new versions of the libraries:
 
@@ -215,13 +239,13 @@ included in the Symfony repository for any BC break that you need to be aware of
 Upgrading to Symfony 6: Add Native Return Types
 -----------------------------------------------
 
-Symfony 6 will come with native PHP return types to (almost all) methods.
+Symfony 6 and Symfony 7 added native PHP return types to (almost all) methods.
 
 In PHP, if the parent has a return type declaration, any class implementing
 or overriding the method must have the return type as well. However, you
 can add a return type before the parent adds one. This means that it is
 important to add the native PHP return types to your classes before
-upgrading to Symfony 6.0. Otherwise, you will get incompatible declaration
+upgrading to Symfony 6.0 or 7.0. Otherwise, you will get incompatible declaration
 errors.
 
 When debug mode is enabled (typically in the dev and test environment),
@@ -331,3 +355,6 @@ Classes in the ``vendor/`` directory are always ignored.
 
 .. _`PHP CS Fixer`: https://github.com/friendsofphp/php-cs-fixer
 .. _`Rector`: https://github.com/rectorphp/rector
+.. _`maintained Symfony versions`: https://symfony.com/releases
+.. _`dependabot`: https://docs.github.com/en/code-security/dependabot
+.. _`GitHub issue about dependabot`: https://github.com/dependabot/dependabot-core/issues/4631

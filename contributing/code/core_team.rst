@@ -13,6 +13,25 @@ This document states the rules that govern the Symfony core team. These rules
 are effective upon publication of this document and all Symfony Core members
 must adhere to said rules and protocol.
 
+Core Team Member Role
+---------------------
+
+In addition to being a regular contributor, core team members are expected to:
+
+* Review, approve, and merge pull requests;
+* Help enforce, improve, and implement Symfony :doc:`processes and policies </contributing/index>`;
+* Participate in the Symfony Core Team discussions (on Slack and GitHub).
+
+Core Team Member Responsibilities
+---------------------------------
+
+Core Team members are unpaid volunteers and as such, they are not expected to
+dedicate any specific amount of time on Symfony. They are expected to help the
+project in any way they can, from reviewing pull requests, writing documentation
+to participating in discussions and helping the community in general, but their
+involvement is completely voluntary and can be as much or as little as they
+want.
+
 Core Organization
 -----------------
 
@@ -34,10 +53,8 @@ The Symfony Core groups, in descending order of priority, are as follows:
 In addition, there are other groups created to manage specific topics:
 
 * **Security Team**: manages the whole security process (triaging reported vulnerabilities,
-  fixing the reported issues, coordinating the release of security fixes, etc.)
-
-* **Recipes Team**: manages the recipes in the main and contrib recipe repositories.
-
+  fixing the reported issues, coordinating the release of security fixes, etc.);
+* **Symfony UX Team**: manages the `UX repositories`_;
 * **Documentation Team**: manages the whole `symfony-docs repository`_.
 
 Active Core Members
@@ -52,21 +69,17 @@ Active Core Members
   * **Nicolas Grekas** (`nicolas-grekas`_);
   * **Christophe Coevoet** (`stof`_);
   * **Christian Flothmann** (`xabbuh`_);
-  * **Tobias Schultze** (`Tobion`_);
   * **Kévin Dunglas** (`dunglas`_);
   * **Javier Eguiluz** (`javiereguiluz`_);
   * **Grégoire Pineau** (`lyrixx`_);
   * **Ryan Weaver** (`weaverryan`_);
   * **Robin Chalas** (`chalasr`_);
-  * **Maxime Steinhausser** (`ogizanagi`_);
   * **Yonel Ceruto** (`yceruto`_);
   * **Tobias Nyholm** (`Nyholm`_);
   * **Wouter De Jong** (`wouterj`_);
   * **Alexander M. Turek** (`derrabus`_);
   * **Jérémy Derussé** (`jderusse`_);
-  * **Titouan Galopin** (`tgalopin`_);
   * **Oskar Stark** (`OskarStark`_);
-  * **Thomas Calvet** (`fancyweb`_);
   * **Mathieu Santostefano** (`welcomattic`_);
   * **Kevin Bond** (`kbond`_);
   * **Jérôme Tamarelle** (`gromnan`_).
@@ -74,13 +87,15 @@ Active Core Members
 * **Security Team** (``@symfony/security`` on GitHub):
 
   * **Fabien Potencier** (`fabpot`_);
-  * **Michael Cullum** (`michaelcullum`_);
   * **Jérémy Derussé** (`jderusse`_).
 
-* **Recipes Team**:
+* **Symfony UX Team** (``@symfony/ux`` on GitHub):
 
-  * **Fabien Potencier** (`fabpot`_);
-  * **Tobias Nyholm** (`Nyholm`_).
+  * **Ryan Weaver** (`weaverryan`_);
+  * **Kevin Bond** (`kbond`_);
+  * **Simon André** (`smnandre`_);
+  * **Hugo Alliaume** (`kocal`_);
+  * **Matheo Daninos** (`webmamba`_).
 
 * **Documentation Team** (``@symfony/team-symfony-docs`` on GitHub):
 
@@ -104,7 +119,12 @@ Symfony contributions:
 * **Lukas Kahwe Smith** (`lsmith77`_);
 * **Jules Pietri** (`HeahDude`_);
 * **Jakub Zalas** (`jakzal`_);
-* **Samuel Rozé** (`sroze`_).
+* **Samuel Rozé** (`sroze`_);
+* **Tobias Schultze** (`Tobion`_);
+* **Maxime Steinhausser** (`ogizanagi`_);
+* **Titouan Galopin** (`tgalopin`_);
+* **Michael Cullum** (`michaelcullum`_);
+* **Thomas Calvet** (`fancyweb`_).
 
 Core Membership Application
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -138,7 +158,6 @@ Pull Request Voting Policy
 
 * Core members can change their votes as many times as they desire
   during the course of a pull request discussion;
-
 * Core members are not allowed to vote on their own pull requests.
 
 Pull Request Merging Policy
@@ -147,13 +166,10 @@ Pull Request Merging Policy
 A pull request **can be merged** if:
 
 * It is a :ref:`minor change <core-team_minor-changes>`;
-
 * Enough time was given for peer reviews;
-
 * It is a bug fix and at least two **Mergers Team** members voted ``+1``
   (only one if the submitter is part of the Mergers team) and no Core
   member voted ``-1`` (via GitHub reviews or as comments).
-
 * It is a new feature and at least two **Mergers Team** members voted
   ``+1`` (if the submitter is part of the Mergers team, two *other* members)
   and no Core member voted ``-1`` (via GitHub reviews or as comments).
@@ -166,7 +182,24 @@ All code must be committed to the repository through pull requests, except for
 to the repository.
 
 **Mergers** must always use the command-line ``gh`` tool provided by the
-**Project Leader** to merge the pull requests.
+**Project Leader** to merge pull requests.
+
+When merging a pull request, the tool asks for a category that should be chosen
+following these rules:
+
+* **Feature**: For new features and deprecations; Pull requests must be merged
+  in the development branch.
+* **Bug**: Only for bug fixes; We are very conservative when it comes to
+  merging older, but still maintained, branches. Read the :doc:`maintenance`
+  document for more information.
+* **Minor**: For everything that does not change the code or when they don't
+  need to be listed in the CHANGELOG files: typos, Markdown files, test files,
+  new or missing translations, etc.
+* **Security**: It's the category used for security fixes and should never be
+  used except by the security team.
+
+Getting the right category is important as it is used by automated tools to
+generate the CHANGELOG files when releasing new versions.
 
 Release Policy
 ~~~~~~~~~~~~~~
@@ -187,6 +220,7 @@ discretion of the **Project Leader**.
     violations, and minor CSS, JavaScript and HTML modifications.
 
 .. _`symfony-docs repository`: https://github.com/symfony/symfony-docs
+.. _`UX repositories`: https://github.com/symfony/ux
 .. _`fabpot`: https://github.com/fabpot/
 .. _`webmozart`: https://github.com/webmozart/
 .. _`Tobion`: https://github.com/Tobion/
@@ -218,3 +252,6 @@ discretion of the **Project Leader**.
 .. _`welcomattic`: https://github.com/welcomattic/
 .. _`kbond`: https://github.com/kbond/
 .. _`gromnan`: https://github.com/gromnan/
+.. _`smnandre`: https://github.com/smnandre/
+.. _`kocal`: https://github.com/kocal/
+.. _`webmamba`: https://github.com/webmamba/

@@ -126,14 +126,14 @@ between all of the rows in your user table:
             }
         }
 
-.. caution::
+.. warning::
 
     This constraint doesn't provide any protection against `race conditions`_.
     They may occur when another entity is persisted by an external process after
     this validation has passed and before this entity is actually persisted in
     the database.
 
-.. caution::
+.. warning::
 
     This constraint cannot deal with duplicates found in a collection of items
     that haven't been persisted as entities yet. You'll need to create your own
@@ -188,8 +188,8 @@ Consider this example:
         #[ORM\Entity]
         #[UniqueEntity(
             fields: ['host', 'port'],
-            errorPath: 'port',
             message: 'This port is already in use on that host.',
+            errorPath: 'port',
         )]
         class Service
         {
@@ -207,8 +207,8 @@ Consider this example:
             constraints:
                 - Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity:
                     fields: [host, port]
-                    errorPath: port
                     message: 'This port is already in use on that host.'
+                    errorPath: port
 
     .. code-block:: xml
 
@@ -224,8 +224,8 @@ Consider this example:
                         <value>host</value>
                         <value>port</value>
                     </option>
-                    <option name="errorPath">port</option>
                     <option name="message">This port is already in use on that host.</option>
+                    <option name="errorPath">port</option>
                 </constraint>
             </class>
 
@@ -249,8 +249,8 @@ Consider this example:
             {
                 $metadata->addConstraint(new UniqueEntity([
                     'fields' => ['host', 'port'],
-                    'errorPath' => 'port',
                     'message' => 'This port is already in use on that host.',
+                    'errorPath' => 'port',
                 ]));
             }
         }
@@ -355,7 +355,7 @@ this option to specify one or more fields to only ignore ``null`` values on them
             }
         }
 
-.. caution::
+.. warning::
 
     If you ``ignoreNull`` on fields that are part of a unique index in your
     database, you might see insertion errors when your application attempts to

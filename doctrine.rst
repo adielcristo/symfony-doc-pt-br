@@ -41,7 +41,7 @@ The database connection information is stored as an environment variable called
     # .env (or override DATABASE_URL in .env.local to avoid committing your changes)
 
     # customize this line!
-    DATABASE_URL="mysql://db_user:db_password@127.0.0.1:3306/db_name?serverVersion=5.7"
+    DATABASE_URL="mysql://db_user:db_password@127.0.0.1:3306/db_name?serverVersion=8.0.37"
 
     # to use mariadb:
     # Before doctrine/dbal < 3.7
@@ -53,15 +53,15 @@ The database connection information is stored as an environment variable called
     # DATABASE_URL="sqlite:///%kernel.project_dir%/var/app.db"
 
     # to use postgresql:
-    # DATABASE_URL="postgresql://db_user:db_password@127.0.0.1:5432/db_name?serverVersion=11&charset=utf8"
+    # DATABASE_URL="postgresql://db_user:db_password@127.0.0.1:5432/db_name?serverVersion=12.19 (Debian 12.19-1.pgdg120+1)&charset=utf8"
 
     # to use oracle:
     # DATABASE_URL="oci8://db_user:db_password@127.0.0.1:1521/db_name"
 
-.. caution::
+.. warning::
 
     If the username, password, host or database name contain any character considered
-    special in a URI (such as ``+``, ``@``, ``$``, ``#``, ``/``, ``:``, ``*``, ``!``, ``%``),
+    special in a URI (such as ``: / ? # [ ] @ ! $ & ' ( ) * + , ; =``),
     you must encode them. See `RFC 3986`_ for the full list of reserved characters.
     You can use the :phpfunction:`urlencode` function to encode them or
     the :ref:`urlencode environment variable processor <urlencode_environment_variable_processor>`.
@@ -76,7 +76,7 @@ database for you:
     $ php bin/console doctrine:database:create
 
 There are more options in ``config/packages/doctrine.yaml`` that you can configure,
-including your ``server_version`` (e.g. 5.7 if you're using MySQL 5.7), which may
+including your ``server_version`` (e.g. 8.0.37 if you're using MySQL 8.0.37), which may
 affect how Doctrine functions.
 
 .. tip::
@@ -84,14 +84,14 @@ affect how Doctrine functions.
     There are many other Doctrine commands. Run ``php bin/console list doctrine``
     to see a full list.
 
+.. _doctrine-adding-mapping:
+
 Creating an Entity Class
 ------------------------
 
 Suppose you're building an application where products need to be displayed.
 Without even thinking about Doctrine or databases, you already know that
 you need a ``Product`` object to represent those products.
-
-.. _doctrine-adding-mapping:
 
 You can use the ``make:entity`` command to create this class and any fields you
 need. The command will ask you some questions - answer them like done below:
@@ -158,23 +158,23 @@ Whoa! You now have a new ``src/Entity/Product.php`` file::
         // ... getter and setter methods
     }
 
+.. tip::
+
+    Starting in `MakerBundle`_: v1.57.0 - You can pass either ``--with-uuid`` or
+    ``--with-ulid`` to ``make:entity``. Leveraging Symfony's :doc:`Uid Component </components/uid>`,
+    this generates an entity with the ``id`` type as :ref:`Uuid <uuid>`
+    or :ref:`Ulid <ulid>` instead of ``int``.
+
 .. note::
 
-    Starting in v1.44.0 - MakerBundle only supports entities using PHP attributes.
+    Starting in v1.44.0 - `MakerBundle`_: only supports entities using PHP attributes.
 
 .. note::
 
     Confused why the price is an integer? Don't worry: this is just an example.
     But, storing prices as integers (e.g. 100 = $1 USD) can avoid rounding issues.
 
-.. note::
-
-    If you are using an SQLite database, you'll see the following error:
-    *PDOException: SQLSTATE[HY000]: General error: 1 Cannot add a NOT NULL
-    column with default value NULL*. Add a ``nullable=true`` option to the
-    ``description`` property to fix the problem.
-
-.. caution::
+.. warning::
 
     There is a `limit of 767 bytes for the index key prefix`_ when using
     InnoDB tables in MySQL 5.6 and earlier versions. String columns with 255
@@ -204,7 +204,7 @@ If you want to use XML instead of attributes, add ``type: xml`` and
 ``dir: '%kernel.project_dir%/config/doctrine'`` to the entity mappings in your
 ``config/packages/doctrine.yaml`` file.
 
-.. caution::
+.. warning::
 
     Be careful not to use reserved SQL keywords as your table or column names
     (e.g. ``GROUP`` or ``USER``). See Doctrine's `Reserved SQL keywords documentation`_
@@ -225,6 +225,11 @@ already installed:
 .. code-block:: terminal
 
     $ php bin/console make:migration
+
+.. tip::
+
+    Starting in `MakerBundle`_: v1.56.0 - Passing ``--formatted`` to ``make:migration``
+    generates a nice and tidy migration file.
 
 If everything worked, you should see something like this:
 
@@ -315,6 +320,13 @@ before, execute your migrations:
 
     $ php bin/console doctrine:migrations:migrate
 
+.. warning::
+
+    If you are using an SQLite database, you'll see the following error:
+    *PDOException: SQLSTATE[HY000]: General error: 1 Cannot add a NOT NULL
+    column with default value NULL*. Add a ``nullable=true`` option to the
+    ``description`` property to fix the problem.
+
 This will only execute the *one* new migration file, because DoctrineMigrationsBundle
 knows that the first migration was already executed earlier. Behind the scenes, it
 manages a ``migration_versions`` table to track this.
@@ -357,7 +369,7 @@ and save it::
     use App\Entity\Product;
     use Doctrine\ORM\EntityManagerInterface;
     use Symfony\Component\HttpFoundation\Response;
-    use Symfony\Component\Routing\Annotation\Route;
+    use Symfony\Component\Routing\Attribute\Route;
 
     class ProductController extends AbstractController
     {
@@ -439,7 +451,7 @@ Consider the following controller code::
 
     use App\Entity\Product;
     use Symfony\Component\HttpFoundation\Response;
-    use Symfony\Component\Routing\Annotation\Route;
+    use Symfony\Component\Routing\Attribute\Route;
     use Symfony\Component\Validator\Validator\ValidatorInterface;
     // ...
 
@@ -503,7 +515,7 @@ be able to go to ``/product/1`` to see your new product::
     use App\Entity\Product;
     use Doctrine\ORM\EntityManagerInterface;
     use Symfony\Component\HttpFoundation\Response;
-    use Symfony\Component\Routing\Annotation\Route;
+    use Symfony\Component\Routing\Attribute\Route;
     // ...
 
     class ProductController extends AbstractController
@@ -536,7 +548,7 @@ and injected by the dependency injection container::
     use App\Entity\Product;
     use App\Repository\ProductRepository;
     use Symfony\Component\HttpFoundation\Response;
-    use Symfony\Component\Routing\Annotation\Route;
+    use Symfony\Component\Routing\Attribute\Route;
     // ...
 
     class ProductController extends AbstractController
@@ -621,7 +633,7 @@ automatically! You can simplify the controller to::
     use App\Entity\Product;
     use App\Repository\ProductRepository;
     use Symfony\Component\HttpFoundation\Response;
-    use Symfony\Component\Routing\Annotation\Route;
+    use Symfony\Component\Routing\Attribute\Route;
     // ...
 
     class ProductController extends AbstractController
@@ -697,7 +709,7 @@ the ``EntityValueResolver`` behavior by using the `MapEntity options`_ ::
     use App\Entity\Product;
     use Symfony\Bridge\Doctrine\Attribute\MapEntity;
     use Symfony\Component\HttpFoundation\Response;
-    use Symfony\Component\Routing\Annotation\Route;
+    use Symfony\Component\Routing\Attribute\Route;
     // ...
 
     class ProductController extends AbstractController
@@ -728,6 +740,20 @@ using the :doc:`ExpressionLanguage component </components/expression_language>`:
 In the expression, the ``repository`` variable will be your entity's
 Repository class and any route wildcards - like ``{product_id}`` are
 available as variables.
+
+The repository method called in the expression can also return a list of entities.
+In that case, update the type of your controller argument::
+
+    #[Route('/posts_by/{author_id}')]
+    public function authorPosts(
+        #[MapEntity(class: Post::class, expr: 'repository.findBy({"author": author_id}, {}, 10)')]
+        iterable $posts
+    ): Response {
+    }
+
+.. versionadded:: 7.1
+
+    The mapping of the lists of entities was introduced in Symfony 7.1.
 
 This can also be used to help resolve multiple arguments::
 
@@ -848,7 +874,7 @@ with any PHP model::
     use App\Repository\ProductRepository;
     use Doctrine\ORM\EntityManagerInterface;
     use Symfony\Component\HttpFoundation\Response;
-    use Symfony\Component\Routing\Annotation\Route;
+    use Symfony\Component\Routing\Attribute\Route;
     // ...
 
     class ProductController extends AbstractController
@@ -1077,12 +1103,10 @@ Learn more
 
     doctrine/associations
     doctrine/events
-    doctrine/registration_form
     doctrine/custom_dql_functions
     doctrine/dbal
     doctrine/multiple_entity_managers
     doctrine/resolve_target_entity
-    doctrine/reverse_engineering
     testing/database
 
 .. _`Doctrine`: https://www.doctrine-project.org/
@@ -1101,3 +1125,4 @@ Learn more
 .. _`PDO`: https://www.php.net/pdo
 .. _`available Doctrine extensions`: https://github.com/doctrine-extensions/DoctrineExtensions
 .. _`StofDoctrineExtensionsBundle`: https://github.com/stof/StofDoctrineExtensionsBundle
+.. _`MakerBundle`: https://symfony.com/doc/current/bundles/SymfonyMakerBundle/index.html

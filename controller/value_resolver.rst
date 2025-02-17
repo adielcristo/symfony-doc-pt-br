@@ -98,7 +98,7 @@ Symfony ships with the following value resolvers in the
     .. tip::
 
         The ``DateTimeInterface`` object is generated with the :doc:`Clock component </components/clock>`.
-        This. gives your full control over the date and time values the controller
+        This gives you full control over the date and time values the controller
         receives when testing your application and using the
         :class:`Symfony\\Component\\Clock\\MockClock` implementation.
 
@@ -129,7 +129,7 @@ Symfony ships with the following value resolvers in the
         namespace App\Controller;
 
         use Symfony\Component\HttpFoundation\Response;
-        use Symfony\Component\Routing\Annotation\Route;
+        use Symfony\Component\Routing\Attribute\Route;
         use Symfony\Component\Uid\UuidV4;
 
         class DefaultController
@@ -175,7 +175,7 @@ In addition, some components, bridges and official bundles provide other value r
         namespace App\Controller;
 
         use Symfony\Component\HttpFoundation\Response;
-        use Symfony\Component\Routing\Annotation\Route;
+        use Symfony\Component\Routing\Attribute\Route;
 
         class DefaultController
         {
@@ -220,7 +220,7 @@ lets you do this by "targeting" the resolver you want::
     use Symfony\Component\HttpFoundation\Session\SessionInterface;
     use Symfony\Component\HttpKernel\Attribute\ValueResolver;
     use Symfony\Component\HttpKernel\Controller\ArgumentResolver\SessionValueResolver;
-    use Symfony\Component\Routing\Annotation\Route;
+    use Symfony\Component\Routing\Attribute\Route;
 
     class SessionController
     {

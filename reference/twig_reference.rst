@@ -130,8 +130,10 @@ asset_version
 
 .. code-block:: twig
 
-    {{ asset_version(packageName = null) }}
+    {{ asset_version(path, packageName = null) }}
 
+``path``
+    **type**: ``string``
 ``packageName`` *(optional)*
     **type**: ``string`` | ``null`` **default**: ``null``
 
@@ -408,9 +410,18 @@ humanize
 ``text``
     **type**: ``string``
 
-Makes a technical name human readable (i.e. replaces underscores by spaces
-or transforms camelCase text like ``helloWorld`` to ``hello world``
-and then capitalizes the string).
+Transforms the given string into a human readable string (by replacing underscores
+with spaces, capitalizing the string, etc.) It's useful e.g. when displaying
+the names of PHP properties/variables to end users:
+
+.. code-block:: twig
+
+    {{ 'dateOfBirth'|humanize }}    {# renders: Date of birth #}
+    {{ 'DateOfBirth'|humanize }}    {# renders: Date of birth #}
+    {{ 'date-of-birth'|humanize }}  {# renders: Date-of-birth #}
+    {{ 'date_of_birth'|humanize }}  {# renders: Date of birth #}
+    {{ 'date of birth'|humanize }}  {# renders: Date of birth #}
+    {{ 'Date Of Birth'|humanize }}  {# renders: Date of birth #}
 
 .. _reference-twig-filter-trans:
 
@@ -462,8 +473,46 @@ yaml_encode
 ``dumpObjects`` *(optional)*
     **type**: ``boolean`` **default**: ``false``
 
-Transforms the input into YAML syntax. See :ref:`components-yaml-dump` for
-more information.
+Transforms the input into YAML syntax.
+
+The ``inline`` argument is the level where the generated output switches to inline YAML:
+
+.. code-block:: twig
+
+    {% set array = {
+        'a': {
+            'c': 'e'
+        },
+        'b': {
+            'd': 'f'
+        }
+    } %}
+
+    {{ array|yaml_encode(inline = 0) }}
+    {# output:
+       { a: { c: e }, b: { d: f } } #}
+
+    {{ array|yaml_encode(inline = 1) }}
+    {# output:
+       a: { c: e }
+       b: { d: f } #}
+
+The ``dumpObjects`` argument enables the dumping of PHP objects::
+
+    // ...
+    $object = new \stdClass();
+    $object->foo = 'bar';
+    // ...
+
+.. code-block:: twig
+
+    {{ object|yaml_encode(dumpObjects = false) }}
+    {# output: null #}
+
+    {{ object|yaml_encode(dumpObjects = true) }}
+    {# output: !php/object 'O:8:"stdClass":1:{s:5:"foo";s:7:"bar";}' #}
+
+See :ref:`components-yaml-dump` for more information.
 
 yaml_dump
 ~~~~~~~~~
@@ -481,6 +530,43 @@ yaml_dump
 
 Does the same as `yaml_encode() <yaml_encode>`_, but includes the type in
 the output.
+
+The ``inline`` argument is the level where the generated output switches to inline YAML:
+
+.. code-block:: twig
+
+    {% set array = {
+        'a': {
+            'c': 'e'
+        },
+        'b': {
+            'd': 'f'
+        }
+    } %}
+
+    {{ array|yaml_dump(inline = 0) }}
+    {# output:
+       %array% { a: { c: e }, b: { d: f } } #}
+
+    {{ array|yaml_dump(inline = 1) }}
+    {# output:
+       %array% a: { c: e }
+       b: { d: f } #}
+
+The ``dumpObjects`` argument enables the dumping of PHP objects::
+
+    // ...
+    $object = new \stdClass();
+    $object->foo = 'bar';
+    // ...
+
+.. code-block:: twig
+
+    {{ object|yaml_dump(dumpObjects = false) }}
+    {# output: %object% null #}
+
+    {{ object|yaml_dump(dumpObjects = true) }}
+    {# output: %object% !php/object 'O:8:"stdClass":1:{s:3:"foo";s:3:"bar";}' #}
 
 abbr_class
 ~~~~~~~~~~
@@ -617,6 +703,8 @@ project's root directory:
 If the given file path is out of the project directory, a ``null`` value
 will be returned.
 
+.. _reference-twig-filter-serialize:
+
 serialize
 ~~~~~~~~~
 
@@ -635,6 +723,37 @@ serialize
 
 Accepts any data that can be serialized by the :doc:`Serializer component </serializer>`
 and returns a serialized string in the specified ``format``.
+
+.. _reference-twig-filter-emojify:
+
+emojify
+~~~~~~~
+
+.. versionadded:: 7.1
+
+    The ``emojify`` filter was introduced in Symfony 7.1.
+
+.. code-block:: twig
+
+    {{ text|emojify(catalog = null) }}
+
+``text``
+    **type**: ``string``
+
+``catalog`` *(optional)*
+    **type**: ``string`` | ``null``
+
+    The emoji set used to generate the textual representation (``slack``,
+    ``github``, ``gitlab``, etc.)
+
+It transforms the textual representation of an emoji (e.g. ``:wave:``) into the
+actual emoji (👋):
+
+.. code-block:: twig
+
+    {{ ':+1:'|emojify }}                 {# renders: 👍 #}
+    {{ ':+1:'|emojify('github') }}       {# renders: 👍 #}
+    {{ ':thumbsup:'|emojify('gitlab') }} {# renders: 👍 #}
 
 .. _reference-twig-tags:
 

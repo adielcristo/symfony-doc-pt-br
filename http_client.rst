@@ -152,7 +152,7 @@ brings most of the available options with type-hinted getters and setters::
             ->setBaseUri('https://...')
             // replaces *all* headers at once, and deletes the headers you do not provide
             ->setHeaders(['header-name' => 'header-value'])
-            // set or replace a single header using addHeader()
+            // set or replace a single header using setHeader()
             ->setHeader('another-header-name', 'another-header-value')
             ->toArray()
     );
@@ -493,6 +493,11 @@ each request (which overrides any global authentication):
 
 .. note::
 
+    Basic Authentication can also be set by including the credentials in the URL,
+    such as: ``http://the-username:the-password@example.com``
+
+.. note::
+
     The NTLM authentication mechanism requires using the cURL transport.
     By using ``HttpClient::createForBaseUri()``, we ensure that the auth credentials
     won't be sent to any other hosts than https://example.com/.
@@ -670,6 +675,7 @@ when the streams are large)::
     $client->request('POST', 'https://...', [
         // ...
         'body' => $formData->bodyToString(),
+        'headers' => $formData->getPreparedHeaders()->toArray(),
     ]);
 
 If you need to add a custom HTTP header to the upload, you can do::
@@ -687,17 +693,21 @@ cookies automatically.
 
 You can either :ref:`send cookies with the BrowserKit component <component-browserkit-sending-cookies>`,
 which integrates seamlessly with the HttpClient component, or manually setting
-the ``Cookie`` HTTP header as follows::
+`the Cookie HTTP request header`_ as follows::
 
     use Symfony\Component\HttpClient\HttpClient;
     use Symfony\Component\HttpFoundation\Cookie;
 
     $client = HttpClient::create([
         'headers' => [
-            'Cookie' => new Cookie('flavor', 'chocolate', strtotime('+1 day')),
+            // set one cookie as a name=value pair
+            'Cookie' => 'flavor=chocolate',
 
-            // you can also pass the cookie contents as a string
-            'Cookie' => 'flavor=chocolate; expires=Sat, 11 Feb 2023 12:18:13 GMT; Max-Age=86400; path=/'
+            // you can set multiple cookies at once separating them with a ;
+            'Cookie' => 'flavor=chocolate; size=medium',
+
+            // if needed, encode the cookie value to ensure that it contains valid characters
+            'Cookie' => sprintf("%s=%s", 'foo', rawurlencode('...')),
         ],
     ]);
 
@@ -1054,7 +1064,7 @@ To disable HTTP compression, send an ``Accept-Encoding: identity`` HTTP header.
 Chunked transfer encoding is enabled automatically if both your PHP runtime and
 the remote server support it.
 
-.. caution::
+.. warning::
 
     If you set ``Accept-Encoding`` to e.g. ``gzip``, you will need to handle the
     decompression yourself.
@@ -1474,6 +1484,114 @@ installed in your application::
 :class:`Symfony\\Component\\HttpClient\\CachingHttpClient` accepts a third argument
 to set the options of the :class:`Symfony\\Component\\HttpKernel\\HttpCache\\HttpCache`.
 
+Limit the Number of Requests
+----------------------------
+
+This component provides a :class:`Symfony\\Component\\HttpClient\\ThrottlingHttpClient`
+decorator that allows to limit the number of requests within a certain period,
+potentially delaying calls based on the rate limiting policy.
+
+The implementation leverages the
+:class:`Symfony\\Component\\RateLimiter\\LimiterInterface` class under the hood
+so the :doc:`Rate Limiter component </rate_limiter>` needs to be
+installed in your application::
+
+.. configuration-block::
+
+    .. code-block:: yaml
+
+        # config/packages/framework.yaml
+        framework:
+            http_client:
+                scoped_clients:
+                    example.client:
+                        base_uri: 'https://example.com'
+                        rate_limiter: 'http_example_limiter'
+
+            rate_limiter:
+                # Don't send more than 10 requests in 5 seconds
+                http_example_limiter:
+                    policy: 'token_bucket'
+                    limit: 10
+                    rate: { interval: '5 seconds', amount: 10 }
+
+    .. code-block:: xml
+
+        <!-- config/packages/framework.xml -->
+        <?xml version="1.0" encoding="UTF-8" ?>
+        <container xmlns="http://symfony.com/schema/dic/services"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xmlns:framework="http://symfony.com/schema/dic/symfony"
+            xsi:schemaLocation="http://symfony.com/schema/dic/services
+                https://symfony.com/schema/dic/services/services-1.0.xsd
+                http://symfony.com/schema/dic/symfony https://symfony.com/schema/dic/symfony/symfony-1.0.xsd">
+
+            <framework:config>
+                <framework:http-client>
+                    <framework:scoped-client name="example.client"
+                        base-uri="https://example.com"
+                        rate-limiter="http_example_limiter"
+                    />
+                </framework:http-client>
+
+                <framework:rate-limiter>
+                    <!-- Don't send more than 10 requests in 5 seconds -->
+                    <framework:limiter name="http_example_limiter"
+                        policy="token_bucket"
+                        limit="10"
+                    >
+                        <framework:rate interval="5 seconds" amount="10"/>
+                    </framework:limiter>
+                </framework:rate-limiter>
+            </framework:config>
+        </container>
+
+    .. code-block:: php
+
+        // config/packages/framework.php
+        use Symfony\Config\FrameworkConfig;
+
+        return static function (FrameworkConfig $framework): void {
+            $framework->httpClient()->scopedClient('example.client')
+                ->baseUri('https://example.com')
+                ->rateLimiter('http_example_limiter');
+                // ...
+            ;
+
+            $framework->rateLimiter()
+                // Don't send more than 10 requests in 5 seconds
+                ->limiter('http_example_limiter')
+                    ->policy('token_bucket')
+                    ->limit(10)
+                    ->rate()
+                        ->interval('5 seconds')
+                        ->amount(10)
+                ;
+        };
+
+    .. code-block:: php-standalone
+
+        use Symfony\Component\HttpClient\HttpClient;
+        use Symfony\Component\HttpClient\ThrottlingHttpClient;
+        use Symfony\Component\RateLimiter\RateLimiterFactory;
+        use Symfony\Component\RateLimiter\Storage\InMemoryStorage;
+
+        $factory = new RateLimiterFactory([
+            'id' => 'http_example_limiter',
+            'policy' => 'token_bucket',
+            'limit' => 10,
+            'rate' => ['interval' => '5 seconds', 'amount' => 10],
+        ], new InMemoryStorage());
+        $limiter = $factory->create();
+
+        $client = HttpClient::createForBaseUri('https://example.com');
+        $throttlingClient = new ThrottlingHttpClient($client, $limiter);
+
+.. versionadded:: 7.1
+
+    The :class:`Symfony\\Component\\HttpClient\\ThrottlingHttpClient` was
+    introduced in Symfony 7.1.
+
 Consuming Server-Sent Events
 ----------------------------
 
@@ -1780,7 +1898,7 @@ If you want to extend the behavior of a base HTTP client, you can use
     class MyExtendedHttpClient implements HttpClientInterface
     {
         public function __construct(
-            private HttpClientInterface $decoratedClient = null
+            private ?HttpClientInterface $decoratedClient = null
         ) {
             $this->decoratedClient ??= HttpClient::create();
         }
@@ -1796,7 +1914,7 @@ If you want to extend the behavior of a base HTTP client, you can use
             return $response;
         }
 
-        public function stream($responses, float $timeout = null): ResponseStreamInterface
+        public function stream($responses, ?float $timeout = null): ResponseStreamInterface
         {
             return $this->decoratedClient->stream($responses, $timeout);
         }
@@ -2214,15 +2332,15 @@ test it in a real application::
             $responseData = $service->createArticle($requestData);
 
             // Assert
-            self::assertSame('POST', $mockResponse->getRequestMethod());
-            self::assertSame('https://example.com/api/article', $mockResponse->getRequestUrl());
-            self::assertContains(
+            $this->assertSame('POST', $mockResponse->getRequestMethod());
+            $this->assertSame('https://example.com/api/article', $mockResponse->getRequestUrl());
+            $this->assertContains(
                 'Content-Type: application/json',
                 $mockResponse->getRequestOptions()['headers']
             );
-            self::assertSame($expectedRequestData, $mockResponse->getRequestOptions()['body']);
+            $this->assertSame($expectedRequestData, $mockResponse->getRequestOptions()['body']);
 
-            self::assertSame($responseData, $expectedResponseData);
+            $this->assertSame($expectedResponseData, $responseData);
         }
     }
 
@@ -2237,11 +2355,11 @@ First, use a browser or HTTP client to perform the HTTP request(s) you want to
 test. Then, save that information as a ``.har`` file somewhere in your application::
 
     // ExternalArticleServiceTest.php
-    use PHPUnit\Framework\TestCase;
+    use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
     use Symfony\Component\HttpClient\MockHttpClient;
     use Symfony\Component\HttpClient\Response\MockResponse;
 
-    final class ExternalArticleServiceTest extends TestCase
+    final class ExternalArticleServiceTest extends KernelTestCase
     {
         public function testSubmitData(): void
         {
@@ -2255,7 +2373,7 @@ test. Then, save that information as a ``.har`` file somewhere in your applicati
             $responseData = $service->createArticle($requestData);
 
             // Assert
-            self::assertSame($responseData, 'the expected response');
+            $this->assertSame('the expected response', $responseData);
         }
     }
 
@@ -2273,7 +2391,26 @@ when making HTTP requests you might face errors at transport level.
 
 That's why it's useful to test how your application behaves in case of a transport
 error. :class:`Symfony\\Component\\HttpClient\\Response\\MockResponse` allows
-you to do so, by yielding the exception from its body::
+you to do so in multiple ways.
+
+In order to test errors that occur before headers have been received,
+set the ``error`` option value when creating the ``MockResponse``.
+Transport errors of this kind occur, for example, when a host name
+cannot be resolved or the host was unreachable. The
+``TransportException`` will be thrown as soon as a method like
+``getStatusCode()`` or ``getHeaders()`` is called.
+
+In order to test errors that occur while a response is being streamed
+(that is, after the headers have already been received), provide the
+exception to ``MockResponse`` as part of the ``body``
+parameter. You can either use an exception directly, or yield the
+exception from a callback. For exceptions of this kind,
+``getStatusCode()`` may indicate a success (200), but accessing
+``getContent()`` fails.
+
+The following example code illustrates all three options.
+
+body::
 
     // ExternalArticleServiceTest.php
     use PHPUnit\Framework\TestCase;
@@ -2288,10 +2425,16 @@ you to do so, by yielding the exception from its body::
         {
             $requestData = ['title' => 'Testing with Symfony HTTP Client'];
             $httpClient = new MockHttpClient([
-                // You can create the exception directly in the body...
+                // Mock a transport level error at a time before
+                // headers have been received (e. g. host unreachable)
+                new MockResponse(info: ['error' => 'host unreachable']),
+
+                // Mock a response with headers indicating
+                // success, but a failure while retrieving the body by
+                // creating the exception directly in the body...
                 new MockResponse([new \RuntimeException('Error at transport level')]),
 
-                // ... or you can yield the exception from a callback
+                // ... or by yielding it from a callback.
                 new MockResponse((static function (): \Generator {
                     yield new TransportException('Error at transport level');
                 })()),
@@ -2326,3 +2469,4 @@ you to do so, by yielding the exception from its body::
 .. _`SSRF`: https://portswigger.net/web-security/ssrf
 .. _`RFC 6570`: https://www.rfc-editor.org/rfc/rfc6570
 .. _`HAR`: https://w3c.github.io/web-performance/specs/HAR/Overview.html
+.. _`the Cookie HTTP request header`: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cookie

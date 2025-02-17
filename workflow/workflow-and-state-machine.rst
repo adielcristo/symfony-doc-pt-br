@@ -81,6 +81,7 @@ Below is the configuration for the pull request state machine.
                     marking_store:
                          type: 'method'
                          property: 'currentPlace'
+                    # The "supports" option is useful only if you are using Twig functions ('workflow_*')
                     supports:
                         - App\Entity\PullRequest
                     initial_marking: start
@@ -127,14 +128,12 @@ Below is the configuration for the pull request state machine.
 
             <framework:config>
                 <framework:workflow name="pull_request" type="state_machine">
-                    <framework:marking-store>
-                        <framework:type>method</framework:type>
-                        <framework:property>currentPlace</framework:property>
-                    </framework:marking-store>
+                    <framework:initial-marking>start</framework:initial-marking>
 
+                    <framework:marking-store type="method" property="currentPlace"/>
+
+                    <!-- The "supports" option is useful only if you are using Twig functions ('workflow_*') -->
                     <framework:support>App\Entity\PullRequest</framework:support>
-
-                    <framework:initial_marking>start</framework:initial_marking>
 
                     <framework:place>start</framework:place>
                     <framework:place>coding</framework:place>
@@ -202,6 +201,7 @@ Below is the configuration for the pull request state machine.
 
             $pullRequest
                 ->type('state_machine')
+                // The "supports" option is useful only if you are using Twig functions ('workflow_*')
                 ->supports(['App\Entity\PullRequest'])
                 ->initialMarking(['start']);
 

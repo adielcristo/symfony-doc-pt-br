@@ -126,7 +126,7 @@ Now, you can use the ``TwitterClient`` service immediately in a controller::
     use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
     use Symfony\Component\HttpFoundation\Request;
     use Symfony\Component\HttpFoundation\Response;
-    use Symfony\Component\Routing\Annotation\Route;
+    use Symfony\Component\Routing\Attribute\Route;
 
     class DefaultController extends AbstractController
     {
@@ -317,8 +317,8 @@ To fix that, add an :ref:`alias <service-autowiring-alias>`:
 
             App\Util\Rot13Transformer: ~
 
-            # the ``App\Util\Rot13Transformer`` service will be injected when
-            # an ``App\Util\TransformerInterface`` type-hint is detected
+            # the App\Util\Rot13Transformer service will be injected when
+            # an App\Util\TransformerInterface type-hint is detected
             App\Util\TransformerInterface: '@App\Util\Rot13Transformer'
 
     .. code-block:: xml
@@ -422,7 +422,7 @@ type hinted, but use the ``UppercaseTransformer`` implementation in some
 specific cases. To do so, you can create a normal alias from the
 ``TransformerInterface`` interface to ``Rot13Transformer``, and then
 create a *named autowiring alias* from a special string containing the
-interface followed by a variable name matching the one you use when doing
+interface followed by an argument name matching the one you use when doing
 the injection::
 
     // src/Service/MastodonClient.php
@@ -456,13 +456,13 @@ the injection::
             App\Util\Rot13Transformer: ~
             App\Util\UppercaseTransformer: ~
 
-            # the ``App\Util\UppercaseTransformer`` service will be
-            # injected when an ``App\Util\TransformerInterface``
-            # type-hint for a ``$shoutyTransformer`` argument is detected.
+            # the App\Util\UppercaseTransformer service will be
+            # injected when an App\Util\TransformerInterface
+            # type-hint for a $shoutyTransformer argument is detected
             App\Util\TransformerInterface $shoutyTransformer: '@App\Util\UppercaseTransformer'
 
             # If the argument used for injection does not match, but the
-            # type-hint still matches, the ``App\Util\Rot13Transformer``
+            # type-hint still matches, the App\Util\Rot13Transformer
             # service will be injected.
             App\Util\TransformerInterface: '@App\Util\Rot13Transformer'
 
@@ -519,7 +519,7 @@ the injection::
 
             // the App\Util\UppercaseTransformer service will be
             // injected when an App\Util\TransformerInterface
-            // type-hint for a $shoutyTransformer argument is detected.
+            // type-hint for a $shoutyTransformer argument is detected
             $services->alias(TransformerInterface::class.' $shoutyTransformer', UppercaseTransformer::class);
 
             // If the argument used for injection does not match, but the
@@ -545,15 +545,41 @@ If the argument is named ``$shoutyTransformer``,
 But, you can also manually wire any *other* service by specifying the argument
 under the arguments key.
 
-Another possibility is to use the ``#[Target]`` attribute. By using this attribute
-on the argument you want to autowire, you can define exactly which service to inject
-by using its alias. Thanks to this, you're able to have multiple services implementing
-the same interface and keep the argument name decorrelated of any implementation name
-(like shown in the example above).
+Another option is to use the ``#[Target]`` attribute. By adding this attribute
+to the argument you want to autowire, you can specify which service to inject by
+passing the name of the argument used in the named alias. This way, you can have
+multiple services implementing the same interface and keep the argument name
+separate from any implementation name (like shown in the example above). In addition,
+you'll get an exception in case you make any typo in the target name.
 
-Let's say you defined the ``app.uppercase_transformer`` alias for the
-``App\Util\UppercaseTransformer`` service. You would be able to use the ``#[Target]``
-attribute like this::
+.. warning::
+
+    The ``#[Target]`` attribute only accepts the name of the argument used in the
+    named alias; it **does not** accept service ids or service aliases.
+
+You can get a list of named autowiring aliases by running the ``debug:autowiring`` command::
+
+.. code-block:: terminal
+
+    $ php bin/console debug:autowiring LoggerInterface
+
+    Autowirable Types
+    =================
+
+     The following classes & interfaces can be used as type-hints when autowiring:
+     (only showing classes/interfaces matching LoggerInterface)
+
+     Describes a logger instance.
+     Psr\Log\LoggerInterface - alias:monolog.logger
+     Psr\Log\LoggerInterface $assetMapperLogger - target:asset_mapperLogger - alias:monolog.logger.asset_mapper
+     Psr\Log\LoggerInterface $cacheLogger - alias:monolog.logger.cache
+     Psr\Log\LoggerInterface $httpClientLogger - target:http_clientLogger - alias:monolog.logger.http_client
+     Psr\Log\LoggerInterface $mailerLogger - alias:monolog.logger.mailer
+
+     [...]
+
+Suppose you want to inject the ``App\Util\UppercaseTransformer`` service. You would use
+the ``#[Target]`` attribute by passing the name of the ``$shoutyTransformer`` argument::
 
     // src/Service/MastodonClient.php
     namespace App\Service;
@@ -564,11 +590,16 @@ attribute like this::
     class MastodonClient
     {
         public function __construct(
-            #[Target('app.uppercase_transformer')]
-            private TransformerInterface $transformer
-        ){
+            #[Target('shoutyTransformer')]
+            private TransformerInterface $transformer,
+        ) {
         }
     }
+
+.. tip::
+
+    Since the ``#[Target]`` attribute normalizes the string passed to it to its
+    camelCased form, name variations (e.g. ``shouty.transformer``) also work.
 
 .. note::
 
@@ -602,7 +633,8 @@ logic about those arguments::
     class MessageGenerator
     {
         public function __construct(
-            #[Autowire(service: 'monolog.logger.request')] LoggerInterface $logger
+            #[Autowire(service: 'monolog.logger.request')]
+            private LoggerInterface $logger,
         ) {
             // ...
         }
@@ -610,7 +642,8 @@ logic about those arguments::
 
 The ``#[Autowire]`` attribute can also be used for :ref:`parameters <service-parameters>`,
 :doc:`complex expressions </service_container/expression_language>` and even
-:ref:`environment variables <config-env-vars>`::
+:ref:`environment variables <config-env-vars>` ,
+:doc:`including env variable processors </configuration/env_var_processors>`::
 
     // src/Service/MessageGenerator.php
     namespace App\Service;
@@ -631,11 +664,15 @@ The ``#[Autowire]`` attribute can also be used for :ref:`parameters <service-par
 
             // expressions
             #[Autowire(expression: 'service("App\\\Mail\\\MailerConfiguration").getMailerMethod()')]
-            string $mailerMethod
+            string $mailerMethod,
 
             // environment variables
             #[Autowire(env: 'SOME_ENV_VAR')]
-            string $senderName
+            string $senderName,
+
+            // environment variables with processors
+            #[Autowire(env: 'bool:SOME_BOOL_ENV_VAR')]
+            bool $allowAttachments,
         ) {
         }
         // ...
@@ -684,7 +721,7 @@ attribute::
     {
         public function __construct(
             #[AutowireServiceClosure('third_party.remote_message_formatter')]
-            private \Closure $messageFormatterResolver
+            private \Closure $messageFormatterResolver,
         ) {
         }
 
@@ -698,7 +735,7 @@ attribute::
 
 It is common that a service accepts a closure with a specific signature.
 In this case, you can use the
-:class:`Symfony\Component\DependencyInjection\Attribute\\AutowireCallable` attribute
+:class:`Symfony\\Component\\DependencyInjection\\Attribute\\AutowireCallable` attribute
 to generate a closure with the same signature as a specific method of a service. When
 this closure is called, it will pass all its arguments to the underlying service
 function.  If the closure needs to be called more than once, the service instance
@@ -714,7 +751,7 @@ create extra instances of a non-shared service::
     {
         public function __construct(
             #[AutowireCallable(service: 'third_party.remote_message_formatter', method: 'format')]
-            private \Closure $formatCallable
+            private \Closure $formatCallable,
         ) {
         }
 
@@ -727,10 +764,40 @@ create extra instances of a non-shared service::
     }
 
 Finally, you can pass the ``lazy: true`` option to the
-:class:`Symfony\Component\DependencyInjection\Attribute\\AutowireCallable`
+:class:`Symfony\\Component\\DependencyInjection\\Attribute\\AutowireCallable`
 attribute. By doing so, the callable will automatically be lazy, which means
 that the encapsulated service will be instantiated **only** at the
 closure's first call.
+
+The :class:`Symfony\\Component\\DependencyInjection\\Attribute\\AutowireMethodOf`
+attribute provides a simpler way of specifying the name of the service method
+by using the property name as method name::
+
+    // src/Service/MessageGenerator.php
+    namespace App\Service;
+
+    use Symfony\Component\DependencyInjection\Attribute\AutowireMethodOf;
+
+    class MessageGenerator
+    {
+        public function __construct(
+            #[AutowireMethodOf('third_party.remote_message_formatter')]
+            private \Closure $format,
+        ) {
+        }
+
+        public function generate(string $message): void
+        {
+            $formattedMessage = ($this->format)($message);
+
+            // ...
+        }
+    }
+
+.. versionadded:: 7.1
+
+    The :class:`Symfony\Component\DependencyInjection\Attribute\\AutowireMethodOf`
+    attribute was introduced in Symfony 7.1.
 
 .. _autowiring-calls:
 

@@ -10,9 +10,9 @@ is a light layer that helps serve your files directly to the browser.
 The component has two main features:
 
 * :ref:`Mapping & Versioning Assets <mapping-assets>`: All files inside of ``assets/``
-  are made available publicly and **versioned**. You can reference
-  ``assets/styles/app.css`` in a template with ``{{ asset('styles/app.css') }}``.
-  The final URL will include a version hash, like ``/assets/styles/app-3c16d9220694c0e56d8648f25e6035e9.css``.
+  are made available publicly and **versioned**. You can reference the file
+  ``assets/images/product.jpg`` in a Twig template with ``{{ asset('images/product.jpg') }}``.
+  The final URL will include a version hash, like ``/assets/images/product-3c16d92m.jpg``.
 
 * :ref:`Importmaps <importmaps-javascript>`: A native browser feature that makes it easier
   to use the JavaScript ``import`` statement (e.g. ``import { Modal } from 'bootstrap'``)
@@ -70,13 +70,15 @@ The path - ``images/duck.png`` - is relative to your mapped directory (``assets/
 This is known as the **logical path** to your asset.
 
 If you look at the HTML in your page, the URL will be something
-like: ``/assets/images/duck-3c16d9220694c0e56d8648f25e6035e9.png``. If you change
+like: ``/assets/images/duck-3c16d92m.png``. If you change
 the file, the version part of the URL will also change automatically.
+
+.. _asset-mapper-compile-assets:
 
 Serving Assets in dev vs prod
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In the ``dev`` environment, the URL ``/assets/images/duck-3c16d9220694c0e56d8648f25e6035e9.png``
+In the ``dev`` environment, the URL ``/assets/images/duck-3c16d92m.png``
 is handled and returned by your Symfony app.
 
 For the ``prod`` environment, before deploy, you should run:
@@ -88,6 +90,13 @@ For the ``prod`` environment, before deploy, you should run:
 This will physically copy all the files from your mapped directories to
 ``public/assets/`` so that they're served directly by your web server.
 See :ref:`Deployment <asset-mapper-deployment>` for more details.
+
+.. warning::
+
+    If you run the ``asset-map:compile`` command on your development machine,
+    you won't see any changes made to your assets when reloading the page.
+    To resolve this, delete the contents of the ``public/assets/`` directory.
+    This will allow your Symfony application to serve those assets dynamically again.
 
 .. tip::
 
@@ -130,6 +139,28 @@ This will show you all the mapped paths and the assets inside of each:
 The "Logical Path" is the path to use when referencing the asset, like
 from a template.
 
+The ``debug:asset-map`` command provides several options to filter results:
+
+.. code-block:: terminal
+
+    # provide an asset name or dir to only show results that match it
+    $ php bin/console debug:asset-map bootstrap.js
+    $ php bin/console debug:asset-map style/
+
+    # provide an extension to only show that file type
+    $ php bin/console debug:asset-map --ext=css
+
+    # you can also only show assets in vendor/ dir or exclude any results from it
+    $ php bin/console debug:asset-map --vendor
+    $ php bin/console debug:asset-map --no-vendor
+
+    # you can also combine all filters (e.g. find bold web fonts in your own asset dirs)
+    $ php bin/console debug:asset-map bold --no-vendor --ext=woff2
+
+.. versionadded:: 7.2
+
+    The options to filter ``debug:asset-map`` results were introduced in Symfony 7.2.
+
 .. _importmaps-javascript:
 
 Importmaps & Writing JavaScript
@@ -163,8 +194,8 @@ this section, the ``assets/app.js`` file is loaded & executed by the browser.
 
 .. tip::
 
-    When importing relative files, be sure to include the ``.js`` extension.
-    Unlike in Node, the extension is required in the browser environment.
+    When importing relative files, be sure to include the ``.js`` filename extension.
+    Unlike in Node.js, this extension is required in the browser environment.
 
 Importing 3rd Party JavaScript Packages
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -204,6 +235,14 @@ This adds the ``bootstrap`` package to your ``importmap.php`` file::
     main package *and* its dependencies. If a package includes a main CSS file,
     that will also be added (see :ref:`Handling 3rd-Party CSS <asset-mapper-3rd-party-css>`).
 
+.. note::
+
+    If you get a 404 error, there might be some issue with the JavaScript package
+    that prevents it from being served by the ``jsDelivr`` CDN. For example, the
+    package might be missing properties like ``main`` or ``module`` in its
+    `package.json configuration file`_. Try to contact the package maintainer to
+    ask them to fix those issues.
+
 Now you can import the ``bootstrap`` package like usual:
 
 .. code-block:: javascript
@@ -213,32 +252,25 @@ Now you can import the ``bootstrap`` package like usual:
 
 All packages in ``importmap.php`` are downloaded into an ``assets/vendor/`` directory,
 which should be ignored by git (the Flex recipe adds it to ``.gitignore`` for you).
-You'll need to run the ``php bin/console importmap:install``
-command to download the files on other computers if some are missing:
+You'll need to run the following command to download the files on other computers
+if some are missing:
 
 .. code-block:: terminal
 
     $ php bin/console importmap:install
 
-You can check for available updates for your third-party packages by running:
+You can update your third-party packages to their current versions by running:
 
 .. code-block:: terminal
 
-    # check for updates for all packages
+    # lists outdated packages and shows their latest versions
     $ php bin/console importmap:outdated
-
-    # check for updates for the given list of packages
-    $ php bin/console importmap:outdated bootstrap lodash
-
-To update third-party packages in your ``importmap.php`` file, run:
-
-.. code-block:: terminal
-
-    # updates all packages
+    # updates all the outdated packages
     $ php bin/console importmap:update
 
-    # updates only the given list of packages
+    # you can also run the commands only for the given list of packages
     $ php bin/console importmap:update bootstrap lodash
+    $ php bin/console importmap:outdated bootstrap lodash
 
 How does the importmap Work?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -251,9 +283,9 @@ outputs an `importmap`_:
 
     <script type="importmap">{
         "imports": {
-            "app": "/assets/app-4e986c1a2318dd050b1d47db8d856278.js",
-            "/assets/duck.js": "/assets/duck-1b7a64b3b3d31219c262cf72521a5267.js",
-            "bootstrap": "/assets/vendor/bootstrap/bootstrap.index-f0935445d9c6022100863214b519a1f2.js"
+            "app": "/assets/app-4e986c1a.js",
+            "/assets/duck.js": "/assets/duck-1b7a64b3.js",
+            "bootstrap": "/assets/vendor/bootstrap/bootstrap.index-f093544d.js"
         }
     }</script>
 
@@ -310,8 +342,8 @@ The ``importmap()`` function also outputs a set of "preloads":
 
 .. code-block:: html
 
-    <link rel="modulepreload" href="/assets/app-4e986c1a2318dd050b1d47db8d856278.js">
-    <link rel="modulepreload" href="/assets/duck-1b7a64b3b3d31219c262cf72521a5267.js">
+    <link rel="modulepreload" href="/assets/app-4e986c1a.js">
+    <link rel="modulepreload" href="/assets/duck-1b7a64b3.js">
 
 This is a performance optimization and you can learn more about below
 in :ref:`Performance: Add Preloading <performance-preloading>`.
@@ -383,6 +415,8 @@ from inside ``app.js``:
     // things on "window" become global variables
     window.$ = $;
 
+.. _asset-mapper-handling-css:
+
 Handling CSS
 ------------
 
@@ -405,8 +439,8 @@ the page as ``link`` tags in the order they were imported.
 
     Importing a CSS file is *not* something that is natively supported by
     JavaScript modules. AssetMapper makes this work by adding a special importmap
-    entry for each CSS file. These special entries are valid valid, but do nothing.
-    AssetMapper adds a ``<link>`` tag for each CSS file, but when the JavaScript
+    entry for each CSS file. These special entries are valid, but do nothing.
+    AssetMapper adds a ``<link>`` tag for each CSS file, but when JavaScript
     executes the ``import`` statement, nothing additional happens.
 
 .. _asset-mapper-3rd-party-css:
@@ -436,7 +470,10 @@ To include it on the page, import it from a JavaScript file:
 
     Some packages - like ``bootstrap`` - advertise that they contain a CSS
     file. In those cases, when you ``importmap:require bootstrap``, the
-    CSS file is also added to ``importmap.php`` for convenience.
+    CSS file is also added to ``importmap.php`` for convenience. If some package
+    doesn't advertise its CSS file in the ``style`` property of the
+    `package.json configuration file`_ try to contact the package maintainer to
+    ask them to add that.
 
 Paths Inside of CSS Files
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -457,9 +494,9 @@ for ``duck.png``:
 
 .. code-block:: css
 
-    /* public/assets/styles/app-3c16d9220694c0e56d8648f25e6035e9.css */
+    /* public/assets/styles/app-3c16d92m.css */
     .quack {
-        background-image: url('../images/duck-3c16d9220694c0e56d8648f25e6035e9.png');
+        background-image: url('../images/duck-3c16d92m.png');
     }
 
 .. _asset-mapper-tailwind:
@@ -536,7 +573,7 @@ Sometimes a JavaScript file you're importing (e.g. ``import './duck.js'``),
 or a CSS/image file you're referencing won't be found, and you'll see a 404
 error in your browser's console. You'll also notice that the 404 URL is missing
 the version hash in the filename (e.g. a 404 to ``/assets/duck.js`` instead of
-a path like ``/assets/duck.1b7a64b3b3d31219c262cf72521a5267.js``).
+a path like ``/assets/duck-1b7a64b3.js``).
 
 This is usually because the path is wrong. If you're referencing the file
 directly in a Twig template:
@@ -592,19 +629,15 @@ is being built, which you can ignore.
 Deploying with the AssetMapper Component
 ----------------------------------------
 
-When you're ready to deploy, "compile" your assets during deployment:
+When you're ready to deploy, "compile" your assets by running this command:
 
 .. code-block:: terminal
 
     $ php bin/console asset-map:compile
 
-That's it! This will write all your assets into the ``public/assets/`` directory,
-along with a few JSON files so that the ``importmap`` can be rendered lightning fast.
-
-But to make sure your site is performant, be sure that your web server
-(or a proxy) is running HTTP/2, is compressing your assets and setting
-long-lived Expires headers on them. See :ref:`Optimization <optimization>` for
-more details.
+This will write all your versioned asset files into the ``public/assets/`` directory,
+along with a few JSON files (``manifest.json``, ``importmap.json``, etc.) so that
+the ``importmap`` can be rendered lightning fast.
 
 .. _optimization:
 
@@ -615,7 +648,7 @@ To make your AssetMapper-powered site fly, there are a few things you need to
 do. If you want to take a shortcut, you can use a service like `Cloudflare`_,
 which will automatically do most of these things for you:
 
-- **Use HTTP/2**: Your web server **must** be running HTTP/2 (or HTTP/3) so the
+- **Use HTTP/2**: Your web server should be running HTTP/2 or HTTP/3 so the
   browser can download assets in parallel. HTTP/2 is automatically enabled in Caddy
   and can be activated in Nginx and Apache. Or, proxy your site through a
   service like Cloudflare, which will automatically enable HTTP/2 for you.
@@ -623,26 +656,23 @@ which will automatically do most of these things for you:
 - **Compress your assets**: Your web server should compress (e.g. using gzip)
   your assets (JavaScript, CSS, images) before sending them to the browser. This
   is automatically enabled in Caddy and can be activated in Nginx and Apache.
-  Or, proxy your site through a service like Cloudflare, which will
-  automatically compress your assets for you. In Cloudflare, you can also
-  enable `auto minify`_ to further compress your assets (e.g. removing
-  whitespace and comments from JavaScript and CSS files).
+  In Cloudflare, assets are compressed by default.
 
-- **Set long-lived Expires headers**: Your web server should set long-lived
-  Expires headers on your assets. Because the AssetMapper component includes a version
-  hash in the filename of each asset, you can safely set the Expires header
-  to a very long time in the future (e.g. 1 year). This isn't automatic in
+- **Set long-lived cache expiry**: Your web server should set a long-lived
+  ``Cache-Control`` HTTP header on your assets. Because the AssetMapper component includes a version
+  hash in the filename of each asset, you can safely set ``max-age``
+  to a very long time (e.g. 1 year). This isn't automatic in
   any web server, but can be easily enabled.
 
 Once you've done these things, you can use a tool like `Lighthouse`_ to
-validate the performance of your site!
+check the performance of your site.
 
 .. _performance-preloading:
 
 Performance: Understanding Preloading
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-One issue that LightHouse may report is:
+One issue that Lighthouse may report is:
 
     Avoid Chaining Critical Requests
 
@@ -694,9 +724,16 @@ See :ref:`Optimization <optimization>` for more details.
 Does the AssetMapper Component Minify Assets?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Nope! Minifying or compressing assets *is* important, but can be
-done by your web server or a service like Cloudflare. See
-:ref:`Optimization <optimization>` for more details.
+Nope! In most cases, this is perfectly fine. The web asset compression performed
+by web servers before sending them is usually sufficient. However, if you think
+you could benefit from minifying assets (in addition to later compressing them),
+you can use the `SensioLabs Minify Bundle`_.
+
+This bundle integrates seamlessly with AssetMapper and minifies all web assets
+automatically when running the ``asset-map:compile`` command (as explained in
+the :ref:`serving assets in production <asset-mapper-compile-assets>` section).
+
+See :ref:`Optimization <optimization>` for more details.
 
 Is the AssetMapper Component Production Ready? Is it Performant?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -773,6 +810,13 @@ files) with component, as those must be used in a build system. See the
 `UX Vue.js Documentation`_ for more details about using with the AssetMapper
 component.
 
+Can I Lint and Format My Code?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Not with AssetMapper, but you can install `kocal/biome-js-bundle`_ in your project
+to lint and format your front-end assets. It's much faster than alternatives like
+Prettier and requires no configuration to handle your JavaScript, TypeScript and CSS files.
+
 .. _asset-mapper-ts:
 
 Using TypeScript
@@ -804,7 +848,7 @@ be versioned! It will output something like:
 
 .. code-block:: html+twig
 
-    <link rel="stylesheet" href="/assets/bundles/babdevpagerfanta/css/pagerfanta-ea64fc9c55f8394e696554f8aeb81a8e.css">
+    <link rel="stylesheet" href="/assets/bundles/babdevpagerfanta/css/pagerfanta-ea64fc9c.css">
 
 Overriding 3rd-Party Assets
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -930,7 +974,7 @@ This option is enabled by default.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Configure the polyfill for older browsers. By default, the `ES module shim`_ is loaded
-via a CDN (i.e. the default value for this setting is `es-module-shims`):
+via a CDN (i.e. the default value for this setting is ``es-module-shims``):
 
 .. code-block:: yaml
 
@@ -1030,6 +1074,45 @@ have *one* importmap, so ``importmap()`` must be called exactly once.
 If, for some reason, you want to execute *only* ``checkout.js``
 and *not* ``app.js``, pass only ``checkout`` to ``importmap()``.
 
+Using a Content Security Policy (CSP)
+-------------------------------------
+
+If you're using a `Content Security Policy`_ (CSP) to prevent cross-site
+scripting attacks, the inline ``<script>`` tags rendered by the ``importmap()``
+function will likely violate that policy and will not be executed by the browser.
+
+To allow these scripts to run without disabling the security provided by
+the CSP, you can generate a secure random string for every request (called
+a *nonce*) and include it in the CSP header and in a ``nonce`` attribute on
+the ``<script>`` tags.
+The ``importmap()`` function accepts an optional second argument that can be
+used to pass attributes to the rendered ``<script>`` tags.
+You can use the `NelmioSecurityBundle`_ to generate the nonce and include
+it in the CSP header, and then pass the same nonce to the Twig function:
+
+.. code-block:: twig
+
+    {# the csp_nonce() function is defined by the NelmioSecurityBundle #}
+    {{ importmap('app', {'nonce': csp_nonce('script')}) }}
+
+Content Security Policy and CSS Files
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If your importmap includes CSS files, AssetMapper uses a trick to load those by
+adding ``data:application/javascript`` to the rendered importmap (see
+:ref:`Handling CSS <asset-mapper-handling-css>`).
+
+This can cause browsers to report CSP violations and block the CSS files from
+being loaded. To prevent this, you can add `strict-dynamic`_ to the ``script-src``
+directive of your Content Security Policy, to tell the browser that the importmap
+is allowed to load other resources.
+
+.. note::
+
+    When using ``strict-dynamic``, the browser will ignore any other sources in
+    ``script-src`` such as ``'self'`` or ``'unsafe-inline'``, so any other
+    ``<script>`` tags will also need to be trusted via a nonce.
+
 The AssetMapper Component Caching System in dev
 -----------------------------------------------
 
@@ -1096,7 +1179,6 @@ command as part of your CI to be warned anytime a new vulnerability is found.
 .. _class syntax: https://caniuse.com/es6-class
 .. _UX React Documentation: https://symfony.com/bundles/ux-react/current/index.html
 .. _UX Vue.js Documentation: https://symfony.com/bundles/ux-vue/current/index.html
-.. _auto minify: https://developers.cloudflare.com/support/speed/optimization-file-size/using-cloudflare-auto-minify/
 .. _Lighthouse: https://developers.google.com/web/tools/lighthouse
 .. _Tailwind: https://tailwindcss.com/
 .. _BabdevPagerfantaBundle: https://github.com/BabDev/PagerfantaBundle
@@ -1107,3 +1189,9 @@ command as part of your CI to be warned anytime a new vulnerability is found.
 .. _sensiolabs/typescript-bundle: https://github.com/sensiolabs/AssetMapperTypeScriptBundle
 .. _`dist/css/bootstrap.min.css file`: https://www.jsdelivr.com/package/npm/bootstrap?tab=files&path=dist%2Fcss#tabRouteFiles
 .. _`dynamic import`: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import
+.. _`package.json configuration file`: https://docs.npmjs.com/creating-a-package-json-file
+.. _Content Security Policy: https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP
+.. _NelmioSecurityBundle: https://symfony.com/bundles/NelmioSecurityBundle/current/index.html#nonce-for-inline-script-handling
+.. _strict-dynamic: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src#strict-dynamic
+.. _kocal/biome-js-bundle: https://github.com/Kocal/BiomeJsBundle
+.. _`SensioLabs Minify Bundle`: https://github.com/sensiolabs/minify-bundle

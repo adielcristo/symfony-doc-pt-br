@@ -60,7 +60,7 @@ do so, create a :doc:`controller class </controller>` like the following:
 
         use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
         use Symfony\Component\HttpFoundation\Response;
-        use Symfony\Component\Routing\Annotation\Route;
+        use Symfony\Component\Routing\Attribute\Route;
 
         class BlogController extends AbstractController
         {
@@ -81,7 +81,7 @@ the ``list()`` method of the ``BlogController`` class.
     example, URLs like ``/blog?foo=bar`` and ``/blog?foo=bar&bar=foo`` will
     also match the ``blog_list`` route.
 
-.. caution::
+.. warning::
 
     If you define multiple PHP classes in the same file, Symfony only loads the
     routes of the first class, ignoring all the other routes.
@@ -153,8 +153,8 @@ the ``BlogController``:
 
 .. note::
 
-    By default Symfony only loads the routes defined in YAML format. If you
-    define routes in XML and/or PHP formats, you need to
+    By default, Symfony loads the routes defined in both YAML and PHP formats.
+    If you define routes in XML format, you need to
     :ref:`update the src/Kernel.php file <configuration-formats>`.
 
 .. _routing-matching-http-methods:
@@ -172,7 +172,9 @@ Use the ``methods`` option to restrict the verbs each route should respond to:
         // src/Controller/BlogApiController.php
         namespace App\Controller;
 
-        // ...
+        use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+        use Symfony\Component\HttpFoundation\Response;
+        use Symfony\Component\Routing\Attribute\Route;
 
         class BlogApiController extends AbstractController
         {
@@ -263,7 +265,7 @@ arbitrary matching logic:
 
         use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
         use Symfony\Component\HttpFoundation\Response;
-        use Symfony\Component\Routing\Annotation\Route;
+        use Symfony\Component\Routing\Attribute\Route;
 
         class DefaultController extends AbstractController
         {
@@ -296,7 +298,7 @@ arbitrary matching logic:
         # config/routes.yaml
         contact:
             path:       /contact
-            controller: 'App\Controller\DefaultController::contact'
+            controller: App\Controller\DefaultController::contact
             condition:  "context.getMethod() in ['GET', 'HEAD'] and request.headers.get('User-Agent') matches '/firefox/i'"
             # expressions can also include configuration parameters:
             # condition: "request.headers.get('User-Agent') matches '%app.allowed_browsers%'"
@@ -305,7 +307,7 @@ arbitrary matching logic:
 
         post_show:
             path:       /posts/{id}
-            controller: 'App\Controller\DefaultController::showPost'
+            controller: App\Controller\DefaultController::showPost
             # expressions can retrieve route parameter values using the "params" variable
             condition:  "params['id'] < 1000"
 
@@ -404,7 +406,7 @@ Behind the scenes, expressions are compiled down to raw PHP. Because of this,
 using the ``condition`` key causes no extra overhead beyond the time it takes
 for the underlying PHP to execute.
 
-.. caution::
+.. warning::
 
     Conditions are *not* taken into account when generating URLs (which is
     explained later in this article).
@@ -486,7 +488,7 @@ For example, the route to display the blog post contents is defined as ``/blog/{
 
         use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
         use Symfony\Component\HttpFoundation\Response;
-        use Symfony\Component\Routing\Annotation\Route;
+        use Symfony\Component\Routing\Attribute\Route;
 
         class BlogController extends AbstractController
         {
@@ -565,7 +567,7 @@ the ``{page}`` parameter using the ``requirements`` option:
 
         use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
         use Symfony\Component\HttpFoundation\Response;
-        use Symfony\Component\Routing\Annotation\Route;
+        use Symfony\Component\Routing\Attribute\Route;
 
         class BlogController extends AbstractController
         {
@@ -647,6 +649,51 @@ URL                       Route          Parameters
     contains a collection of commonly used regular-expression constants such as
     digits, dates and UUIDs which can be used as route parameter requirements.
 
+    .. configuration-block::
+
+        .. code-block:: php-attributes
+
+            // src/Controller/BlogController.php
+            namespace App\Controller;
+
+            use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+            use Symfony\Component\HttpFoundation\Response;
+            use Symfony\Component\Routing\Attribute\Route;
+            use Symfony\Component\Routing\Requirement\Requirement;
+
+            class BlogController extends AbstractController
+            {
+                #[Route('/blog/{page}', name: 'blog_list', requirements: ['page' => Requirement::DIGITS])]
+                public function list(int $page): Response
+                {
+                    // ...
+                }
+            }
+
+        .. code-block:: yaml
+
+            # config/routes.yaml
+            blog_list:
+                path:       /blog/{page}
+                controller: App\Controller\BlogController::list
+                requirements:
+                    page: !php/const Symfony\Component\Routing\Requirement\Requirement::DIGITS
+
+        .. code-block:: php
+
+            // config/routes.php
+            use App\Controller\BlogController;
+            use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
+            use Symfony\Component\Routing\Requirement\Requirement;
+
+            return static function (RoutingConfigurator $routes): void {
+                $routes->add('blog_list', '/blog/{page}')
+                    ->controller([BlogController::class, 'list'])
+                    ->requirements(['page' => Requirement::DIGITS])
+                ;
+                // ...
+            };
+
 .. tip::
 
     Route requirements (and route paths too) can include
@@ -679,7 +726,7 @@ concise, but it can decrease route readability when requirements are complex:
 
         use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
         use Symfony\Component\HttpFoundation\Response;
-        use Symfony\Component\Routing\Annotation\Route;
+        use Symfony\Component\Routing\Attribute\Route;
 
         class BlogController extends AbstractController
         {
@@ -746,7 +793,7 @@ other configuration formats they are defined with the ``defaults`` option:
 
         use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
         use Symfony\Component\HttpFoundation\Response;
-        use Symfony\Component\Routing\Annotation\Route;
+        use Symfony\Component\Routing\Attribute\Route;
 
         class BlogController extends AbstractController
         {
@@ -806,7 +853,7 @@ other configuration formats they are defined with the ``defaults`` option:
 Now, when the user visits ``/blog``, the ``blog_list`` route will match and
 ``$page`` will default to a value of ``1``.
 
-.. caution::
+.. warning::
 
     You can have more than one optional parameter (e.g. ``/blog/{slug}/{page}``),
     but everything after an optional parameter must be optional. For example,
@@ -831,7 +878,7 @@ parameter:
 
         use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
         use Symfony\Component\HttpFoundation\Response;
-        use Symfony\Component\Routing\Annotation\Route;
+        use Symfony\Component\Routing\Attribute\Route;
 
         class BlogController extends AbstractController
         {
@@ -901,7 +948,7 @@ optional ``priority`` parameter in those routes to control their priority:
         namespace App\Controller;
 
         use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-        use Symfony\Component\Routing\Annotation\Route;
+        use Symfony\Component\Routing\Attribute\Route;
 
         class BlogController extends AbstractController
         {
@@ -944,7 +991,7 @@ controller action. Instead of ``string $slug``, add ``BlogPost $post``::
     use App\Entity\BlogPost;
     use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
     use Symfony\Component\HttpFoundation\Response;
-    use Symfony\Component\Routing\Annotation\Route;
+    use Symfony\Component\Routing\Attribute\Route;
 
     class BlogController extends AbstractController
     {
@@ -982,7 +1029,7 @@ convert them automatically to their scalar values.
     use App\Enum\OrderStatusEnum;
     use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
     use Symfony\Component\HttpFoundation\Response;
-    use Symfony\Component\Routing\Annotation\Route;
+    use Symfony\Component\Routing\Attribute\Route;
 
     class OrderController extends AbstractController
     {
@@ -1114,7 +1161,7 @@ the controllers of the routes:
 
         use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
         use Symfony\Component\HttpFoundation\Response;
-        use Symfony\Component\Routing\Annotation\Route;
+        use Symfony\Component\Routing\Attribute\Route;
 
         class BlogController extends AbstractController
         {
@@ -1187,7 +1234,7 @@ A possible solution is to change the parameter requirements to be more permissiv
 
         use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
         use Symfony\Component\HttpFoundation\Response;
-        use Symfony\Component\Routing\Annotation\Route;
+        use Symfony\Component\Routing\Attribute\Route;
 
         class DefaultController extends AbstractController
         {
@@ -1384,7 +1431,7 @@ when importing the routes.
 
         use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
         use Symfony\Component\HttpFoundation\Response;
-        use Symfony\Component\Routing\Annotation\Route;
+        use Symfony\Component\Routing\Attribute\Route;
 
         #[Route('/blog', requirements: ['_locale' => 'en|es|fr'], name: 'blog_')]
         class BlogController extends AbstractController
@@ -1487,6 +1534,12 @@ when importing the routes.
             ;
         };
 
+.. warning::
+
+    The ``exclude`` option only works when the ``resource`` value is a glob string.
+    If you use a regular string (e.g. ``'../src/Controller'``) the ``exclude``
+    value will be ignored.
+
 In this example, the route of the ``index()`` action will be called ``blog_index``
 and its URL will be ``/blog/{_locale}``. The route of the ``show()`` action will be called
 ``blog_show`` and its URL will be ``/blog/{_locale}/posts/{slug}``. Both routes
@@ -1564,7 +1617,7 @@ information in a controller via the ``Request`` object::
     use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
     use Symfony\Component\HttpFoundation\Request;
     use Symfony\Component\HttpFoundation\Response;
-    use Symfony\Component\Routing\Annotation\Route;
+    use Symfony\Component\Routing\Attribute\Route;
 
     class BlogController extends AbstractController
     {
@@ -1753,7 +1806,7 @@ host name:
 
         use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
         use Symfony\Component\HttpFoundation\Response;
-        use Symfony\Component\Routing\Annotation\Route;
+        use Symfony\Component\Routing\Attribute\Route;
 
         class MainController extends AbstractController
         {
@@ -1828,7 +1881,7 @@ multi-tenant applications) and these parameters can be validated too with
 
         use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
         use Symfony\Component\HttpFoundation\Response;
-        use Symfony\Component\Routing\Annotation\Route;
+        use Symfony\Component\Routing\Attribute\Route;
 
         class MainController extends AbstractController
         {
@@ -1956,7 +2009,7 @@ avoids the need for duplicating routes, which also reduces the potential bugs:
 
         use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
         use Symfony\Component\HttpFoundation\Response;
-        use Symfony\Component\Routing\Annotation\Route;
+        use Symfony\Component\Routing\Attribute\Route;
 
         class CompanyController extends AbstractController
         {
@@ -2070,6 +2123,16 @@ with a locale. This can be done by defining a different prefix for each locale
             ;
         };
 
+.. note::
+
+    If a route being imported includes the special :ref:`_locale <routing-locale-parameter>`
+    parameter in its own definition, Symfony will only import it for that locale
+    and not for the other configured locale prefixes.
+
+    E.g. if a route contains ``locale: 'en'`` in its definition and it's being
+    imported with ``en`` (prefix: empty) and ``nl`` (prefix: ``/nl``) locales,
+    that route will be available only in ``en`` locale and not in ``nl``.
+
 Another common requirement is to host the website on a different domain
 according to the locale. This can be done by defining a different host for each
 locale.
@@ -2135,7 +2198,7 @@ session shouldn't be used when matching a request:
         namespace App\Controller;
 
         use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-        use Symfony\Component\Routing\Annotation\Route;
+        use Symfony\Component\Routing\Attribute\Route;
 
         class MainController extends AbstractController
         {
@@ -2217,7 +2280,7 @@ that defines only one route. Consider the following class::
         namespace App\Controller;
 
         use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-        use Symfony\Component\Routing\Annotation\Route;
+        use Symfony\Component\Routing\Attribute\Route;
 
         final class MainController extends AbstractController
         {
@@ -2241,7 +2304,7 @@ use the ``generateUrl()`` helper::
 
     use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
     use Symfony\Component\HttpFoundation\Response;
-    use Symfony\Component\Routing\Annotation\Route;
+    use Symfony\Component\Routing\Attribute\Route;
     use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
     class BlogController extends AbstractController
@@ -2279,7 +2342,7 @@ use the ``generateUrl()`` helper::
         // the 'blog' route only defines the 'page' parameter; the generated URL is:
         // /blog/2?category=Symfony
 
-.. caution::
+.. warning::
 
     While objects are converted to string when used as placeholders, they are not
     converted when used as extra parameters. So, if you're passing an object (e.g. an Uuid)
@@ -2309,7 +2372,7 @@ the :class:`Symfony\\Component\\Routing\\Generator\\UrlGeneratorInterface` class
     class SomeService
     {
         public function __construct(
-            private UrlGeneratorInterface $router,
+            private UrlGeneratorInterface $urlGenerator,
         ) {
         }
 
@@ -2318,20 +2381,20 @@ the :class:`Symfony\\Component\\Routing\\Generator\\UrlGeneratorInterface` class
             // ...
 
             // generate a URL with no route arguments
-            $signUpPage = $this->router->generate('sign_up');
+            $signUpPage = $this->urlGenerator->generate('sign_up');
 
             // generate a URL with route arguments
-            $userProfilePage = $this->router->generate('user_profile', [
+            $userProfilePage = $this->urlGenerator->generate('user_profile', [
                 'username' => $user->getUserIdentifier(),
             ]);
 
             // generated URLs are "absolute paths" by default. Pass a third optional
             // argument to generate different URLs (e.g. an "absolute URL")
-            $signUpPage = $this->router->generate('sign_up', [], UrlGeneratorInterface::ABSOLUTE_URL);
+            $signUpPage = $this->urlGenerator->generate('sign_up', [], UrlGeneratorInterface::ABSOLUTE_URL);
 
             // when a route is localized, Symfony uses by default the current request locale
             // pass a different '_locale' value if you want to set the locale explicitly
-            $signUpPageInDutch = $this->router->generate('sign_up', ['_locale' => 'nl']);
+            $signUpPageInDutch = $this->urlGenerator->generate('sign_up', ['_locale' => 'nl']);
         }
     }
 
@@ -2543,7 +2606,7 @@ each route explicitly:
 
         use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
         use Symfony\Component\HttpFoundation\Response;
-        use Symfony\Component\Routing\Annotation\Route;
+        use Symfony\Component\Routing\Attribute\Route;
 
         class SecurityController extends AbstractController
         {
@@ -2691,6 +2754,59 @@ service, which you can inject in your services or controllers::
             $uriSignatureIsValid = $this->uriSigner->checkRequest($request);
         }
     }
+
+For security reasons, it's common to make signed URIs expire after some time
+(e.g. when using them to reset user credentials). By default, signed URIs don't
+expire, but you can define an expiration date/time using the ``$expiration``
+argument of :method:`Symfony\\Component\\HttpFoundation\\UriSigner::sign`::
+
+    // src/Service/SomeService.php
+    namespace App\Service;
+
+    use Symfony\Component\HttpFoundation\UriSigner;
+
+    class SomeService
+    {
+        public function __construct(
+            private UriSigner $uriSigner,
+        ) {
+        }
+
+        public function someMethod(): void
+        {
+            // ...
+
+            // generate a URL yourself or get it somehow...
+            $url = 'https://example.com/foo/bar?sort=desc';
+
+            // sign the URL with an explicit expiration date
+            $signedUrl = $this->uriSigner->sign($url, new \DateTimeImmutable('2050-01-01'));
+            // $signedUrl = 'https://example.com/foo/bar?sort=desc&_expiration=2524608000&_hash=e4a21b9'
+
+            // if you pass a \DateInterval, it will be added from now to get the expiration date
+            $signedUrl = $this->uriSigner->sign($url, new \DateInterval('PT10S'));  // valid for 10 seconds from now
+            // $signedUrl = 'https://example.com/foo/bar?sort=desc&_expiration=1712414278&_hash=e4a21b9'
+
+            // you can also use a timestamp in seconds
+            $signedUrl = $this->uriSigner->sign($url, 4070908800); // timestamp for the date 2099-01-01
+            // $signedUrl = 'https://example.com/foo/bar?sort=desc&_expiration=4070908800&_hash=e4a21b9'
+        }
+    }
+
+.. note::
+
+    The expiration date/time is included in the signed URIs as a timestamp via
+    the ``_expiration`` query parameter.
+
+.. versionadded:: 7.1
+
+    The feature to add an expiration date for a signed URI was introduced in Symfony 7.1.
+
+.. note::
+
+    The generated URI hashes may include the ``/`` and ``+`` characters, which
+    can cause issues with certain clients. If you encounter this problem, replace
+    them using the following: ``strtr($hash, ['/' => '_', '+' => '-'])``.
 
 Troubleshooting
 ---------------

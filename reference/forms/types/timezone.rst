@@ -16,8 +16,6 @@ manually, but then you should just use the ``ChoiceType`` directly.
 +---------------------------+------------------------------------------------------------------------+
 | Default invalid message   | Please select a valid timezone.                                        |
 +---------------------------+------------------------------------------------------------------------+
-| Legacy invalid message    | The value {{ value }} is not valid.                                    |
-+---------------------------+------------------------------------------------------------------------+
 | Parent type               | :doc:`ChoiceType </reference/forms/types/choice>`                      |
 +---------------------------+------------------------------------------------------------------------+
 | Class                     | :class:`Symfony\\Component\\Form\\Extension\\Core\\Type\\TimezoneType` |
@@ -69,7 +67,7 @@ Overridden Options
 The Timezone type defaults the choices to all timezones returned by
 :phpmethod:`DateTimeZone::listIdentifiers`, broken down by continent.
 
-.. caution::
+.. warning::
 
     If you want to override the built-in choices of the timezone type, you
     will also have to set the ``choice_loader`` option to ``null``.

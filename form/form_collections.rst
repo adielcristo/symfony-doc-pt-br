@@ -195,7 +195,7 @@ then set on the ``tag`` field of the ``Task`` and can be accessed via ``$task->g
 So far, this works great, but only to edit *existing* tags. It doesn't allow us
 yet to add new tags or delete existing ones.
 
-.. caution::
+.. warning::
 
     You can embed nested collections as many levels down as you like. However,
     if you use Xdebug, you may receive a ``Maximum function nesting level of '100'
@@ -314,7 +314,7 @@ you'll replace with a unique, incrementing number (e.g. ``task[tags][3][name]``)
 
 .. code-block:: javascript
 
-    const addFormToCollection = (e) => {
+    function addFormToCollection(e) {
       const collectionHolder = document.querySelector('.' + e.currentTarget.dataset.collectionHolderClass);
 
       const item = document.createElement('li');
@@ -427,13 +427,13 @@ That was fine, but forcing the use of the "adder" method makes handling
 these new ``Tag`` objects easier (especially if you're using Doctrine, which
 you will learn about next!).
 
-.. caution::
+.. warning::
 
     You have to create **both** ``addTag()`` and ``removeTag()`` methods,
     otherwise the form will still use ``setTag()`` even if ``by_reference`` is ``false``.
     You'll learn more about the ``removeTag()`` method later in this article.
 
-.. caution::
+.. warning::
 
     Symfony can only make the plural-to-singular conversion (e.g. from the
     ``tags`` property to the ``addTag()`` method) for English words. Code
@@ -579,7 +579,8 @@ on the server. In order for this to work in an HTML form, you must remove
 the DOM element for the collection item to be removed, before submitting
 the form.
 
-First, add a "delete this tag" link to each tag form:
+In the JavaScript code, add a "delete" button to each existing tag on the page.
+Then, append the "add delete button" method in the function that adds the new tags:
 
 .. code-block:: javascript
 
@@ -591,7 +592,7 @@ First, add a "delete this tag" link to each tag form:
 
     // ... the rest of the block from above
 
-    const addFormToCollection = (e) => {
+    function addFormToCollection(e) {
         // ...
 
         // add a delete link to the new form
@@ -602,7 +603,7 @@ The ``addTagFormDeleteLink()`` function will look something like this:
 
 .. code-block:: javascript
 
-    const addTagFormDeleteLink = (item) => {
+    function addTagFormDeleteLink(item) {
         const removeFormButton = document.createElement('button');
         removeFormButton.innerText = 'Delete this tag';
 

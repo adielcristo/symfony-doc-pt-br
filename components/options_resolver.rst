@@ -485,7 +485,7 @@ these options, you can return the desired default value::
         }
     }
 
-.. caution::
+.. warning::
 
     The argument of the callable must be type hinted as ``Options``. Otherwise,
     the callable itself is considered as the default value of the option.
@@ -699,7 +699,7 @@ to the closure to access to them::
         }
     }
 
-.. caution::
+.. warning::
 
     The arguments of the closure must be type hinted as ``OptionsResolver`` and
     ``Options`` respectively. Otherwise, the closure itself is considered as the
@@ -811,7 +811,7 @@ method::
 
     When using an option deprecated by you in your own library, you can pass
     ``false`` as the second argument of the
-    :method:`Symfony\\Component\\OptionsResolver\\Options::offsetGet` method
+    :method:`Symfony\\Component\\OptionsResolver\\OptionsResolver::offsetGet` method
     to not trigger the deprecation warning.
 
 .. note::

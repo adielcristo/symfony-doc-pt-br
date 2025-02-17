@@ -13,8 +13,6 @@ how the input and output of the data is handled.
 +---------------------------+---------------------------------------------------------------------+
 | Default invalid message   | Please enter a valid money amount.                                  |
 +---------------------------+---------------------------------------------------------------------+
-| Legacy invalid message    | The value {{ value }} is not valid.                                 |
-+---------------------------+---------------------------------------------------------------------+
 | Parent type               | :doc:`FormType </reference/forms/types/form>`                       |
 +---------------------------+---------------------------------------------------------------------+
 | Class                     | :class:`Symfony\\Component\\Form\\Extension\\Core\\Type\\MoneyType` |
@@ -72,12 +70,13 @@ html5
 If set to ``true``, the HTML input will be rendered as a native HTML5
 ``<input type="number">`` element.
 
-.. caution::
+.. warning::
 
-    As HTML5 number format is normalized, it is incompatible with ``grouping`` option.
+    As HTML5 number format is normalized, it is incompatible with the ``grouping``
+    option.
 
-model_type
-~~~~~~~~~~
+input
+~~~~~
 
 **type**: ``string`` **default**: ``float``
 
@@ -87,7 +86,7 @@ values stored in cents as integers) set this option to ``integer``.
 
 .. versionadded:: 7.1
 
-    The ``model_type`` option was introduced in Symfony 7.1.
+    The ``input`` option was introduced in Symfony 7.1.
 
 scale
 ~~~~~

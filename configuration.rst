@@ -228,7 +228,7 @@ reusable configuration value. By convention, parameters are defined under the
                 <parameter key="app.another_constant" type="constant">App\Entity\BlogPost::MAX_ITEMS</parameter>
 
                 <!-- Enum case as parameter values -->
-                <parameter key="app.some_enum" type="enum">App\Enum\PostState::Published</parameter>
+                <parameter key="app.some_enum" type="constant">App\Enum\PostState::Published</parameter>
             </parameters>
 
             <!-- ... -->
@@ -267,7 +267,7 @@ reusable configuration value. By convention, parameters are defined under the
 
         // ...
 
-.. caution::
+.. warning::
 
     By default and when using XML configuration, the values between ``<parameter>``
     tags are not trimmed. This means that the value of the following parameter will be
@@ -379,8 +379,22 @@ a new ``locale`` parameter is added to the ``config/services.yaml`` file).
 
     By convention, parameters whose names start with a dot ``.`` (for example,
     ``.mailer.transport``), are available only during the container compilation.
-    They are useful when working with :ref:`Compiler Passes </service_container/compiler_passes>`
+    They are useful when working with :doc:`Compiler Passes </service_container/compiler_passes>`
     to declare some temporary parameters that won't be available later in the application.
+
+Configuration parameters are usually validation-free, but you can ensure that
+essential parameters for your application's functionality are not empty::
+
+    /** @var ContainerBuilder $container */
+    $container->parameterCannotBeEmpty('app.private_key', 'Did you forget to set a value for the "app.private_key" parameter?');
+
+If a non-empty parameter is ``null``, an empty string ``''``, or an empty array ``[]``,
+Symfony will throw an exception. This validation is **not** made at compile time
+but when attempting to retrieve the value of the parameter.
+
+.. versionadded:: 7.2
+
+    Validating non-empty parameters was introduced in Symfony 7.2.
 
 .. seealso::
 
@@ -795,7 +809,7 @@ Use environment variables in values by prefixing variables with ``$``:
     DB_USER=root
     DB_PASS=${DB_USER}pass # include the user as a password prefix
 
-.. caution::
+.. warning::
 
     The order is important when some env var depends on the value of other env
     vars. In the above example, ``DB_PASS`` must be defined after ``DB_USER``.
@@ -816,7 +830,7 @@ Embed commands via ``$()`` (not supported on Windows):
 
     START_TIME=$(date)
 
-.. caution::
+.. warning::
 
     Using ``$()`` might not work depending on your shell.
 
@@ -858,9 +872,10 @@ the right situation:
   but the overrides only apply to one environment.
 
 *Real* environment variables always win over env vars created by any of the
-``.env`` files. This behavior depends on
-`variables_order <http://php.net/manual/en/ini.core.php#ini.variables-order>`_ to
-contain an ``E`` to expose the ``$_ENV`` superglobal.
+``.env`` files. Note that this behavior depends on the
+`variables_order <http://php.net/manual/en/ini.core.php#ini.variables-order>`_
+configuration, which must contain an ``E`` to expose the ``$_ENV`` superglobal.
+This is the default configuration in PHP.
 
 The ``.env`` and ``.env.<environment>`` files should be committed to the
 repository because they are the same for all developers and machines. However,
@@ -953,15 +968,7 @@ path is part of the options you can set in your ``composer.json`` file:
           }
       }
 
-You can also set the ``SYMFONY_DOTENV_PATH`` environment variable at system
-level (e.g. in your web server configuration or in your Dockerfile):
-
-.. code-block:: bash
-
-    # .env (or .env.local)
-    SYMFONY_DOTENV_PATH=my/custom/path/to/.env
-
-Finally, you can directly invoke the ``Dotenv`` class in your
+As an alternate option, you can directly invoke the ``Dotenv`` class in your
 ``bootstrap.php`` file or any other file of your application::
 
     use Symfony\Component\Dotenv\Dotenv;
@@ -974,9 +981,13 @@ the local and environment-specific files (e.g. ``.*.local`` and
 :ref:`how to override environment variables <configuration-multiple-env-files>`
 to learn more about this.
 
+If you need to know the path to the ``.env`` file that Symfony is using, you can
+read the ``SYMFONY_DOTENV_PATH`` environment variable in your application.
+
 .. versionadded:: 7.1
 
-    The ``SYMFONY_DOTENV_PATH`` environment variable was introduced in Symfony 7.1.
+    The ``SYMFONY_DOTENV_PATH`` environment variable was introduced in Symfony
+    7.1.
 
 .. _configuration-secrets:
 

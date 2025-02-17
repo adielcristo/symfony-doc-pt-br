@@ -170,6 +170,22 @@ collection::
 
 .. include:: /reference/constraints/_groups-option.rst.inc
 
+``errorPath``
+~~~~~~~~~~~~~
+
+**type**: ``string`` **default**: ``null``
+
+.. versionadded:: 7.2
+
+    The ``errorPath`` option was introduced in Symfony 7.2.
+
+If a validation error occurs, the error message is, by default, bound to the
+first element in the collection. Use this option to bind the error message to a
+specific field within the first item of the collection.
+
+The value of this option must use any :doc:`valid PropertyAccess syntax </components/property_access>`
+(e.g. ``'point_of_interest'``, ``'user.email'``).
+
 ``message``
 ~~~~~~~~~~~
 

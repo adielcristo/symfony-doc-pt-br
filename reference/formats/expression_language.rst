@@ -1,9 +1,9 @@
 The Expression Syntax
 =====================
 
-The ExpressionLanguage component uses a specific syntax which is based on the
-expression syntax of Twig. In this document, you can find all supported
-syntaxes.
+The :doc:`ExpressionLanguage component </components/expression_language>` uses a
+specific syntax which is based on the expression syntax of Twig. In this document,
+you can find all supported syntaxes.
 
 Supported Literals
 ------------------
@@ -20,8 +20,13 @@ The component supports:
 * **booleans** - ``true`` and ``false``
 * **null** - ``null``
 * **exponential** - also known as scientific (e.g. ``1.99E+3`` or ``1e-2``)
+* **comments** - using ``/*`` and ``*/`` (e.g. ``/* this is a comment */``)
 
-.. caution::
+.. versionadded:: 7.2
+
+    The support for comments inside expressions was introduced in Symfony 7.2.
+
+.. warning::
 
     A backslash (``\``) must be escaped by 3 backslashes (``\\\\``) in a string
     and 7 backslashes (``\\\\\\\\``) in a regex::
@@ -94,6 +99,8 @@ JavaScript::
 
 This will print out ``Hi Hi Hi!``.
 
+.. _component-expression-null-safe-operator:
+
 Null-safe Operator
 ..................
 
@@ -108,6 +115,24 @@ operator)::
     // these will return `null` if `fruit` is `null`
     $expressionLanguage->evaluate('fruit?.color', ['fruit' => '...'])
     $expressionLanguage->evaluate('fruit?.getStock()', ['fruit' => '...'])
+
+.. _component-expression-null-coalescing-operator:
+
+Null-Coalescing Operator
+........................
+
+It returns the left-hand side if it exists and it's not ``null``; otherwise it
+returns the right-hand side. Expressions can chain multiple coalescing operators:
+
+* ``foo ?? 'no'``
+* ``foo.baz ?? 'no'``
+* ``foo[3] ?? 'no'``
+* ``foo.baz ?? foo['baz'] ?? 'no'``
+
+.. versionadded:: 7.2
+
+    Starting from Symfony 7.2, no exception is thrown when trying to access a
+    non-existent variable. This is the same behavior as the `null-coalescing operator in PHP`_.
 
 .. _component-expression-functions:
 
@@ -259,6 +284,14 @@ Bitwise Operators
 * ``&`` (and)
 * ``|`` (or)
 * ``^`` (xor)
+* ``~`` (not)
+* ``<<`` (left shift)
+* ``>>`` (right shift)
+
+.. versionadded:: 7.2
+
+    Support for the ``~``, ``<<`` and ``>>`` bitwise operators was introduced
+    in Symfony 7.2.
 
 Comparison Operators
 ~~~~~~~~~~~~~~~~~~~~
@@ -312,6 +345,11 @@ Logical Operators
 * ``not`` or ``!``
 * ``and`` or ``&&``
 * ``or`` or ``||``
+* ``xor``
+
+.. versionadded:: 7.2
+
+    Support for the ``xor`` logical operator was introduced in Symfony 7.2.
 
 For example::
 
@@ -404,6 +442,61 @@ Ternary Operators
 * ``foo ?: 'no'`` (equal to ``foo ? foo : 'no'``)
 * ``foo ? 'yes'`` (equal to ``foo ? 'yes' : ''``)
 
+Other Operators
+~~~~~~~~~~~~~~~
+
+* ``?.`` (:ref:`null-safe operator <component-expression-null-safe-operator>`)
+* ``??`` (:ref:`null-coalescing operator <component-expression-null-coalescing-operator>`)
+
+Operators Precedence
+~~~~~~~~~~~~~~~~~~~~
+
+Operator precedence determines the order in which operations are processed in an
+expression. For example, the result of the expression ``1 + 2 * 4`` is ``9``
+and not ``12`` because the multiplication operator (``*``) takes precedence over
+the addition operator (``+``).
+
+To avoid ambiguities (or to alter the default order of operations) add
+parentheses in your expressions (e.g. ``(1 + 2) * 4`` or ``1 + (2 * 4)``.
+
+The following table summarizes the operators and their associativity from the
+**highest to the lowest precedence**:
+
++-----------------------------------------------------------------+---------------+
+| Operators                                                       | Associativity |
++=================================================================+===============+
+| ``-`` , ``+``, ``~`` (unary operators that add the number sign) | none          |
++-----------------------------------------------------------------+---------------+
+| ``**``                                                          | right         |
++-----------------------------------------------------------------+---------------+
+| ``*``, ``/``, ``%``                                             | left          |
++-----------------------------------------------------------------+---------------+
+| ``not``, ``!``                                                  | none          |
++-----------------------------------------------------------------+---------------+
+| ``~``                                                           | left          |
++-----------------------------------------------------------------+---------------+
+| ``+``, ``-``                                                    | left          |
++-----------------------------------------------------------------+---------------+
+| ``..``, ``<<``, ``>>``                                          | left          |
++-----------------------------------------------------------------+---------------+
+| ``==``, ``===``, ``!=``, ``!==``,                               | left          |
+| ``<``, ``>``, ``>=``, ``<=``,                                   |               |
+| ``not in``, ``in``, ``contains``,                               |               |
+| ``starts with``, ``ends with``, ``matches``                     |               |
++-----------------------------------------------------------------+---------------+
+| ``&``                                                           | left          |
++-----------------------------------------------------------------+---------------+
+| ``^``                                                           | left          |
++-----------------------------------------------------------------+---------------+
+| ``|``                                                           | left          |
++-----------------------------------------------------------------+---------------+
+| ``and``, ``&&``                                                 | left          |
++-----------------------------------------------------------------+---------------+
+| ``xor``                                                         | left          |
++-----------------------------------------------------------------+---------------+
+| ``or``, ``||``                                                  | left          |
++-----------------------------------------------------------------+---------------+
+
 Built-in Objects and Variables
 ------------------------------
 
@@ -414,3 +507,5 @@ expressions (e.g. the request, the current user, etc.):
 * :doc:`Variables available in security expressions </security/expressions>`;
 * :doc:`Variables available in service container expressions </service_container/expression_language>`;
 * :ref:`Variables available in routing expressions <routing-matching-expressions>`.
+
+.. _`null-coalescing operator in PHP`: https://www.php.net/manual/en/language.operators.comparison.php#language.operators.comparison.coalesce

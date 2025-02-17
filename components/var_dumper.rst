@@ -387,7 +387,7 @@ then its dump representation::
 
 .. note::
 
-    `#14` is the internal object handle. It allows comparing two
+    ``#14`` is the internal object handle. It allows comparing two
     consecutive dumps of the same object.
 
 .. code-block:: php
@@ -623,7 +623,7 @@ For example, to get a dump as a string in a variable, you can do::
 
     $dumper->dump(
         $cloner->cloneVar($variable),
-        function (int $line, int $depth) use (&$output): void {
+        function (string $line, int $depth) use (&$output): void {
             // A negative depth means "end of dump"
             if ($depth >= 0) {
                 // Adds a two spaces indentation to the line

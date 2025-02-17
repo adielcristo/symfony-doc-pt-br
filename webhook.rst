@@ -24,17 +24,26 @@ Currently, the following third-party mailer providers support webhooks:
 Mailer Service Parser service name
 ============== ============================================
 Brevo          ``mailer.webhook.request_parser.brevo``
+Mandrill       ``mailer.webhook.request_parser.mailchimp``
 MailerSend     ``mailer.webhook.request_parser.mailersend``
 Mailgun        ``mailer.webhook.request_parser.mailgun``
 Mailjet        ``mailer.webhook.request_parser.mailjet``
+Mailomat       ``mailer.webhook.request_parser.mailomat``
+Mailtrap       ``mailer.webhook.request_parser.mailtrap``
 Postmark       ``mailer.webhook.request_parser.postmark``
 Resend         ``mailer.webhook.request_parser.resend``
 Sendgrid       ``mailer.webhook.request_parser.sendgrid``
+Sweego         ``mailer.webhook.request_parser.sweego``
 ============== ============================================
 
 .. versionadded:: 7.1
 
     The support for ``Resend`` and ``MailerSend`` were introduced in Symfony 7.1.
+
+.. versionadded:: 7.2
+
+    The ``Mandrill``,  ``Mailomat``, ``Mailtrap``, and ``Sweego`` integrations were introduced in
+    Symfony 7.2.
 
 .. note::
 
@@ -157,6 +166,7 @@ Currently, the following third-party SMS transports support webhooks:
 SMS service  Parser service name
 ============ ==========================================
 Twilio       ``notifier.webhook.request_parser.twilio``
+Sweego       ``notifier.webhook.request_parser.sweego``
 Vonage       ``notifier.webhook.request_parser.vonage``
 ============ ==========================================
 
@@ -186,3 +196,14 @@ For SMS webhooks, react to the
             // Handle the SMS event
         }
     }
+
+Creating a Custom Webhook
+-------------------------
+
+.. tip::
+
+    Starting in `MakerBundle`_ ``v1.58.0``, you can run ``php bin/console make:webhook``
+    to generate the request parser and consumer files needed to create your own
+    Webhook.
+
+.. _`MakerBundle`: https://symfony.com/doc/current/bundles/SymfonyMakerBundle/index.html

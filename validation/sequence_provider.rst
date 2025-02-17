@@ -117,7 +117,7 @@ In this example, it will first validate all constraints in the group ``User``
 (which is the same as the ``Default`` group). Only if all constraints in
 that group are valid, the second group, ``Strict``, will be validated.
 
-.. caution::
+.. warning::
 
     As you have already seen in :doc:`/validation/groups`, the ``Default`` group
     and the group containing the class name (e.g. ``User``) were identical.
@@ -131,7 +131,7 @@ that group are valid, the second group, ``Strict``, will be validated.
     sequence, which will contain the ``Default`` group which references the
     same group sequence, ...).
 
-.. caution::
+.. warning::
 
     Calling ``validate()`` with a group in the sequence (``Strict`` in previous
     example) will cause a validation **only** with that group and not with all
@@ -360,15 +360,15 @@ entity, and even register the group provider as a service.
 
 Here's how you can achieve this:
 
- 1) **Define a Separate Group Provider Class:** create a class that implements
-    the :class:`Symfony\\Component\\Validator\\GroupProviderInterface`
-    and handles the dynamic group sequence logic;
- 2) **Configure the User with the Provider:** use the ``provider`` option within
-    the :class:`Symfony\\Component\\Validator\\Constraints\\GroupSequenceProvider`
-    attribute to link the entity with the provider class;
- 3) **Autowiring or Manual Tagging:** if :doc:` autowiring </service_container/autowiring>`
-    is enabled, your custom provider will be automatically linked. Otherwise, you must
-    :doc:`tag your service </service_container/tags>` manually with the ``validator.group_provider`` tag.
+#. **Define a Separate Group Provider Class:** create a class that implements
+   the :class:`Symfony\\Component\\Validator\\GroupProviderInterface`
+   and handles the dynamic group sequence logic;
+#. **Configure the User with the Provider:** use the ``provider`` option within
+   the :class:`Symfony\\Component\\Validator\\Constraints\\GroupSequenceProvider`
+   attribute to link the entity with the provider class;
+#. **Autowiring or Manual Tagging:** if :doc:` autowiring </service_container/autowiring>`
+   is enabled, your custom provider will be automatically linked. Otherwise, you must
+   :doc:`tag your service </service_container/tags>` manually with the ``validator.group_provider`` tag.
 
 .. configuration-block::
 

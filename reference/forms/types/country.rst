@@ -20,8 +20,6 @@ the option manually, but then you should just use the ``ChoiceType`` directly.
 +---------------------------+-----------------------------------------------------------------------+
 | Default invalid message   | Please select a valid country.                                        |
 +---------------------------+-----------------------------------------------------------------------+
-| Legacy invalid message    | The value {{ value }} is not valid.                                   |
-+---------------------------+-----------------------------------------------------------------------+
 | Parent type               | :doc:`ChoiceType </reference/forms/types/choice>`                     |
 +---------------------------+-----------------------------------------------------------------------+
 | Class                     | :class:`Symfony\\Component\\Form\\Extension\\Core\\Type\\CountryType` |
@@ -54,7 +52,7 @@ Overridden Options
 The country type defaults the ``choices`` option to the whole list of countries.
 The locale is used to translate the countries names.
 
-.. caution::
+.. warning::
 
     If you want to override the built-in choices of the country type, you
     will also have to set the ``choice_loader`` option to ``null``.

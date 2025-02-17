@@ -26,6 +26,8 @@ default configuration::
 
     $propertyAccessor = PropertyAccess::createPropertyAccessor();
 
+.. _property-access-reading-arrays:
+
 Reading from Arrays
 -------------------
 
@@ -112,7 +114,7 @@ To read from properties, use the "dot" notation::
 
     var_dump($propertyAccessor->getValue($person, 'children[0].firstName')); // 'Bar'
 
-.. caution::
+.. warning::
 
     Accessing public properties is the last option used by ``PropertyAccessor``.
     It tries to access the value using the below methods first before using
@@ -249,16 +251,21 @@ The ``getValue()`` method can also use the magic ``__get()`` method::
         {
             return $this->children[$id];
         }
+
+        public function __isset($id): bool
+        {
+            return isset($this->children[$id]);
+        }
     }
 
     $person = new Person();
 
     var_dump($propertyAccessor->getValue($person, 'Wouter')); // [...]
 
-.. note::
+.. warning::
 
-    The ``__get()`` method support is enabled by default.
-    See `Enable other Features`_ if you want to disable it.
+    When implementing the magic ``__get()`` method, you also need to implement
+    ``__isset()``.
 
 .. _components-property-access-magic-call:
 
@@ -296,7 +303,7 @@ enable this feature by using :class:`Symfony\\Component\\PropertyAccess\\Propert
 
     var_dump($propertyAccessor->getValue($person, 'wouter')); // [...]
 
-.. caution::
+.. warning::
 
     The ``__call()`` feature is disabled by default, you can enable it by calling
     :method:`Symfony\\Component\\PropertyAccess\\PropertyAccessorBuilder::enableMagicCall`

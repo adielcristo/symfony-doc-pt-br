@@ -216,7 +216,7 @@ contents, create a new Normalizer that supports the ``FlattenException`` input::
 
     class MyCustomProblemNormalizer implements NormalizerInterface
     {
-        public function normalize($exception, string $format = null, array $context = []): array
+        public function normalize($exception, ?string $format = null, array $context = []): array
         {
             return [
                 'content' => 'This is my custom problem normalizer.',
@@ -227,7 +227,7 @@ contents, create a new Normalizer that supports the ``FlattenException`` input::
             ];
         }
 
-        public function supportsNormalization($data, string $format = null, array $context = []): bool
+        public function supportsNormalization($data, ?string $format = null, array $context = []): bool
         {
             return $data instanceof FlattenException;
         }
@@ -319,7 +319,7 @@ error pages.
 
 .. note::
 
-    If your listener calls ``setThrowable()`` on the
+    If your listener calls ``setResponse()`` on the
     :class:`Symfony\\Component\\HttpKernel\\Event\\ExceptionEvent`
     event, propagation will be stopped and the response will be sent to
     the client.

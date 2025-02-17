@@ -175,7 +175,7 @@ named ``kernel.http_method_override``.
     :ref:`Changing the Action and HTTP Method <forms-change-action-method>` of
     Symfony forms.
 
-.. caution::
+.. warning::
 
     If you're using the :ref:`HttpCache Reverse Proxy <symfony2-reverse-proxy>`
     with this option, the kernel will ignore the ``_method`` parameter,
@@ -193,12 +193,15 @@ named ``kernel.http_method_override``.
         $request = Request::createFromGlobals();
         // ...
 
-.. _configuration-framework-http_method_override:
-
 trust_x_sendfile_type_header
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**type**: ``boolean`` **default**: ``false``
+**type**: ``boolean`` **default**: ``%env(bool:default::SYMFONY_TRUST_X_SENDFILE_TYPE_HEADER)%``
+
+.. versionadded:: 7.2
+
+    In Symfony 7.2, the default value of this option was changed from ``false`` to the
+    value stored in the ``SYMFONY_TRUST_X_SENDFILE_TYPE_HEADER`` environment variable.
 
 ``X-Sendfile`` is a special HTTP header that tells web servers to replace the
 response contents by the file that is defined in that header. This improves
@@ -409,9 +412,11 @@ performance a bit:
             $framework->enabledLocales(['en', 'es']);
         };
 
-If some user makes requests with a locale not included in this option, the
-application won't display any error because Symfony will display contents using
-the fallback locale.
+An added bonus of defining the enabled locales is that they are automatically
+added as a requirement of the :ref:`special _locale parameter <routing-locale-parameter>`.
+For example, if you define this value as ``['ar', 'he', 'ja', 'zh']``, the
+``_locale`` routing parameter will have an ``ar|he|ja|zh`` requirement. If some
+user makes requests with a locale not included in this option, they'll see a 404 error.
 
 set_content_language_from_locale
 ................................
@@ -448,7 +453,12 @@ in debug mode.
 trusted_hosts
 ~~~~~~~~~~~~~
 
-**type**: ``array`` | ``string`` **default**: ``[]``
+**type**: ``array`` | ``string`` **default**: ``['%env(default::SYMFONY_TRUSTED_HOSTS)%']``
+
+.. versionadded:: 7.2
+
+    In Symfony 7.2, the default value of this option was changed from ``[]`` to the
+    value stored in the ``SYMFONY_TRUSTED_HOSTS`` environment variable.
 
 A lot of different attacks have been discovered relying on inconsistencies
 in handling the ``Host`` header by various software (web servers, reverse
@@ -860,37 +870,6 @@ If you use for example
 as the type and name of an argument, autowiring will inject the ``my_api.client``
 service into your autowired classes.
 
-.. _reference-http-client-retry-failed:
-
-By enabling the optional ``retry_failed`` configuration, the HTTP client service
-will automatically retry failed HTTP requests.
-
-.. code-block:: yaml
-
-    # config/packages/framework.yaml
-    framework:
-        # ...
-        http_client:
-            # ...
-            default_options:
-                retry_failed:
-                    # retry_strategy: app.custom_strategy
-                    http_codes:
-                        0: ['GET', 'HEAD']   # retry network errors if request method is GET or HEAD
-                        429: true            # retry all responses with 429 status code
-                        500: ['GET', 'HEAD']
-                    max_retries: 2
-                    delay: 1000
-                    multiplier: 3
-                    max_delay: 5000
-                    jitter: 0.3
-
-            scoped_clients:
-                my_api.client:
-                    # ...
-                    retry_failed:
-                        max_retries: 4
-
 auth_basic
 ..........
 
@@ -1001,6 +980,8 @@ crypto_method
 The minimum version of TLS to accept. The value must be one of the
 ``STREAM_CRYPTO_METHOD_TLSv*_CLIENT`` constants defined by PHP.
 
+.. _reference-http-client-retry-delay:
+
 delay
 .....
 
@@ -1036,6 +1017,8 @@ headers
 An associative array of the HTTP headers added before making the request. This
 value must use the format ``['header-name' => 'value0, value1, ...']``.
 
+.. _reference-http-client-retry-http-codes:
+
 http_codes
 ..........
 
@@ -1050,6 +1033,8 @@ http_version
 
 The HTTP version to use, typically ``'1.1'``  or ``'2.0'``. Leave it to ``null``
 to let Symfony select the best version automatically.
+
+.. _reference-http-client-retry-jitter:
 
 jitter
 ......
@@ -1077,6 +1062,8 @@ local_pk
 
 The path of a file that contains the `PEM formatted`_ private key of the
 certificate defined in the ``local_cert`` option.
+
+.. _reference-http-client-retry-max-delay:
 
 max_delay
 .........
@@ -1112,6 +1099,8 @@ max_redirects
 The maximum number of redirects to follow. Use ``0`` to not follow any
 redirection.
 
+.. _reference-http-client-retry-max-retries:
+
 max_retries
 ...........
 
@@ -1119,6 +1108,8 @@ max_retries
 
 The maximum number of retries for failing requests. When the maximum is reached,
 the client returns the last received response.
+
+.. _reference-http-client-retry-multiplier:
 
 multiplier
 ..........
@@ -1174,6 +1165,19 @@ query
 An associative array of the query string values added to the URL before making
 the request. This value must use the format ``['parameter-name' => parameter-value, ...]``.
 
+rate_limiter
+............
+
+**type**: ``string``
+
+The service ID of the rate limiter used to limit the number of HTTP requests
+within a certain period. The service must implement the
+:class:`Symfony\\Component\\RateLimiter\\LimiterInterface`.
+
+.. versionadded:: 7.1
+
+    The ``rate_limiter`` option was introduced in Symfony 7.1.
+
 resolve
 .......
 
@@ -1186,6 +1190,50 @@ client and to make your tests easier.
 
 The value of this option is an associative array of ``domain => IP address``
 (e.g ``['symfony.com' => '46.137.106.254', ...]``).
+
+.. _reference-http-client-retry-failed:
+
+retry_failed
+............
+
+**type**: ``array``
+
+This option configures the behavior of the HTTP client when some request fails,
+including which types of requests to retry and how many times. The behavior is
+defined with the following options:
+
+* :ref:`delay <reference-http-client-retry-delay>`
+* :ref:`http_codes <reference-http-client-retry-http-codes>`
+* :ref:`jitter <reference-http-client-retry-jitter>`
+* :ref:`max_delay <reference-http-client-retry-max-delay>`
+* :ref:`max_retries <reference-http-client-retry-max-retries>`
+* :ref:`multiplier <reference-http-client-retry-multiplier>`
+
+.. code-block:: yaml
+
+    # config/packages/framework.yaml
+    framework:
+        # ...
+        http_client:
+            # ...
+            default_options:
+                retry_failed:
+                    # retry_strategy: app.custom_strategy
+                    http_codes:
+                        0: ['GET', 'HEAD']   # retry network errors if request method is GET or HEAD
+                        429: true            # retry all responses with 429 status code
+                        500: ['GET', 'HEAD']
+                    max_retries: 2
+                    delay: 1000
+                    multiplier: 3
+                    max_delay: 5000
+                    jitter: 0.3
+
+            scoped_clients:
+                my_api.client:
+                    # ...
+                    retry_failed:
+                        max_retries: 4
 
 retry_strategy
 ..............
@@ -1213,7 +1261,7 @@ timeout
 
 **type**: ``float`` **default**: depends on your PHP config
 
-Time, in seconds, to wait for a response. If the response takes longer, a
+Time, in seconds, to wait for network activity. If the connection is idle for longer, a
 :class:`Symfony\\Component\\HttpClient\\Exception\\TransportException` is thrown.
 Its default value is the same as the value of PHP's `default_socket_timeout`_
 config option.
@@ -1514,15 +1562,7 @@ The directory where routing information will be cached. Can be set to
 .. deprecated:: 7.1
 
     Setting the ``cache_dir`` option is deprecated since Symfony 7.1. The routes
-    are now always cached in the ``%kernel.build_dir%`` directory. If you want
-    to disable route caching, set the ``ignore_cache`` option to ``true``.
-
-ignore_cache
-............
-
-**type**: ``boolean`` **default**: ``false``
-
-When this option is set to ``true``, routing information will not be cached.
+    are now always cached in the ``%kernel.build_dir%`` directory.
 
 secrets
 ~~~~~~~
@@ -1799,7 +1839,7 @@ cookie_httponly
 This determines whether cookies should only be accessible through the HTTP
 protocol. This means that the cookie won't be accessible by scripting
 languages, such as JavaScript. This setting can effectively help to reduce
-identity theft through XSS attacks.
+identity theft through :ref:`XSS attacks <xss-attacks>`.
 
 gc_divisor
 ..........
@@ -1813,12 +1853,20 @@ If not set, ``php.ini``'s `session.gc_divisor`_ directive will be relied on.
 gc_probability
 ..............
 
-**type**: ``integer`` **default**: ``1``
+**type**: ``integer``
 
 This defines the probability that the garbage collector (GC) process is
 started on every session initialization. The probability is calculated by
 using ``gc_probability`` / ``gc_divisor``, e.g. 1/100 means there is a 1%
 chance that the GC process will start on each request.
+
+If not set, Symfony will use the value of the `session.gc_probability`_ directive
+in the ``php.ini`` configuration file.
+
+.. versionadded:: 7.2
+
+    Relying on ``php.ini``'s directive as default for ``gc_probability`` was
+    introduced in Symfony 7.2.
 
 gc_maxlifetime
 ..............
@@ -1842,6 +1890,11 @@ session IDs are harder to guess.
 
 If not set, ``php.ini``'s `session.sid_length`_ directive will be relied on.
 
+.. deprecated:: 7.2
+
+    The ``sid_length`` option was deprecated in Symfony 7.2. No alternative is
+    provided as PHP 8.4 has deprecated the related option.
+
 sid_bits_per_character
 ......................
 
@@ -1853,6 +1906,11 @@ The more bits results in stronger session ID. ``5`` is recommended value for
 most environments.
 
 If not set, ``php.ini``'s `session.sid_bits_per_character`_ directive will be relied on.
+
+.. deprecated:: 7.2
+
+    The ``sid_bits_per_character`` option was deprecated in Symfony 7.2. No alternative
+    is provided as PHP 8.4 has deprecated the related option.
 
 save_path
 .........
@@ -2881,11 +2939,11 @@ enable_attributes
 
 **type**: ``boolean`` **default**: ``true``
 
-If this option is enabled, serialization groups can be defined using `PHP attributes`_.
+Enables support for `PHP attributes`_ in the serializer component.
 
 .. seealso::
 
-    For more information, see :ref:`serializer-using-serialization-groups-attributes`.
+    See :ref:`the reference <reference-attributes-serializer>` for a list of supported annotations.
 
 .. _reference-serializer-name_converter:
 
@@ -2901,8 +2959,7 @@ value.
 
 .. seealso::
 
-    For more information, see
-    :ref:`component-serializer-converting-property-names-when-serializing-and-deserializing`.
+    For more information, see :ref:`serializer-name-conversion`.
 
 .. _reference-serializer-circular_reference_handler:
 
@@ -3199,7 +3256,7 @@ settings from the base pool as defaults.
 
 .. note::
 
-    Your service MUST implement the ``Psr\Cache\CacheItemPoolInterface`` interface.
+    Your service needs to implement the ``Psr\Cache\CacheItemPoolInterface`` interface.
 
 public
 """"""
@@ -3861,6 +3918,7 @@ The attributes can also be added to interfaces directly::
 .. _`session.cookie_samesite`: https://www.php.net/manual/en/session.configuration.php#ini.session.cookie-samesite
 .. _`session.cookie_secure`: https://www.php.net/manual/en/session.configuration.php#ini.session.cookie-secure
 .. _`session.gc_divisor`: https://www.php.net/manual/en/session.configuration.php#ini.session.gc-divisor
+.. _`session.gc_probability`: https://www.php.net/manual/en/session.configuration.php#ini.session.gc-probability
 .. _`session.gc_maxlifetime`: https://www.php.net/manual/en/session.configuration.php#ini.session.gc-maxlifetime
 .. _`session.sid_length`: https://www.php.net/manual/en/session.configuration.php#ini.session.sid-length
 .. _`session.sid_bits_per_character`: https://www.php.net/manual/en/session.configuration.php#ini.session.sid-bits-per-character

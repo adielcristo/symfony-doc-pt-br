@@ -61,10 +61,10 @@ over SMTP by configuring the DSN in your ``.env`` file (the ``user``,
             $framework->mailer()->dsn(env('MAILER_DSN'));
         };
 
-.. caution::
+.. warning::
 
     If the username, password or host contain any character considered special in a
-    URI (such as ``+``, ``@``, ``$``, ``#``, ``/``, ``:``, ``*``, ``!``), you must
+    URI (such as ``: / ? # [ ] @ ! $ & ' ( ) * + , ; =``), you must
     encode them. See `RFC 3986`_ for the full list of reserved characters or use the
     :phpfunction:`urlencode` function to encode them.
 
@@ -82,7 +82,7 @@ native        ``native://default``                      Mailer uses the sendmail
                                                         ``php.ini`` settings when ``sendmail_path`` is not configured.
 ============  ========================================  ==============================================================
 
-.. caution::
+.. warning::
 
     When using ``native://default``, if ``php.ini`` uses the ``sendmail -t``
     command, you won't have error reporting and ``Bcc`` headers won't be removed.
@@ -106,18 +106,26 @@ Service               Install with                                    Webhook su
 `Infobip`_            ``composer require symfony/infobip-mailer``
 `Mailgun`_            ``composer require symfony/mailgun-mailer``     yes
 `Mailjet`_            ``composer require symfony/mailjet-mailer``     yes
+`Mailomat`_           ``composer require symfony/mailomat-mailer``    yes
 `MailPace`_           ``composer require symfony/mail-pace-mailer``
-`MailerSend`_         ``composer require symfony/mailer-send-mailer``
-`Mandrill`_           ``composer require symfony/mailchimp-mailer``
+`MailerSend`_         ``composer require symfony/mailer-send-mailer`` yes
+`Mailtrap`_           ``composer require symfony/mailtrap-mailer``    yes
+`Mandrill`_           ``composer require symfony/mailchimp-mailer``   yes
+`Postal`_             ``composer require symfony/postal-mailer``
 `Postmark`_           ``composer require symfony/postmark-mailer``    yes
 `Resend`_             ``composer require symfony/resend-mailer``      yes
 `Scaleway`_           ``composer require symfony/scaleway-mailer``
 `SendGrid`_           ``composer require symfony/sendgrid-mailer``    yes
+`Sweego`_             ``composer require symfony/sweego-mailer``      yes
 ===================== =============================================== ===============
 
 .. versionadded:: 7.1
 
     The Azure and Resend integrations were introduced in Symfony 7.1.
+
+.. versionadded:: 7.2
+
+    The Mailomat, Mailtrap, Postal and Sweego integrations were introduced in Symfony 7.2.
 
 .. note::
 
@@ -164,78 +172,94 @@ transport, but you can force to use one:
 This table shows the full list of available DSN formats for each third
 party provider:
 
-+------------------------+-----------------------------------------------------+
-| Provider               | Formats                                             |
-+========================+=====================================================+
-| `Amazon SES`_          | - SMTP ses+smtp://USERNAME:PASSWORD@default         |
-|                        | - HTTP ses+https://ACCESS_KEY:SECRET_KEY@default    |
-|                        | - API ses+api://ACCESS_KEY:SECRET_KEY@default       |
-+------------------------+-----------------------------------------------------+
-| `Azure`_               | - API azure+api://ACS_RESOURCE_NAME:KEY@default     |
-+------------------------+-----------------------------------------------------+
-| `Brevo`_               | - SMTP brevo+smtp://USERNAME:PASSWORD@default       |
-|                        | - HTTP n/a                                          |
-|                        | - API brevo+api://KEY@default                       |
-+------------------------+-----------------------------------------------------+
-| `Google Gmail`_        | - SMTP gmail+smtp://USERNAME:APP-PASSWORD@default   |
-|                        | - HTTP n/a                                          |
-|                        | - API n/a                                           |
-+------------------------+-----------------------------------------------------+
-| `Infobip`_             | - SMTP infobip+smtp://KEY@default                   |
-|                        | - HTTP n/a                                          |
-|                        | - API infobip+api://KEY@BASE_URL                    |
-+------------------------+-----------------------------------------------------+
-| `Mandrill`_            | - SMTP mandrill+smtp://USERNAME:PASSWORD@default    |
-|                        | - HTTP mandrill+https://KEY@default                 |
-|                        | - API mandrill+api://KEY@default                    |
-+------------------------+-----------------------------------------------------+
-| `MailerSend`_          | - SMTP mailersend+smtp://KEY@default                |
-|                        | - HTTP n/a                                          |
-|                        | - API mailersend+api://KEY@BASE_URL                 |
-+------------------------+-----------------------------------------------------+
-| `Mailgun`_             | - SMTP mailgun+smtp://USERNAME:PASSWORD@default     |
-|                        | - HTTP mailgun+https://KEY:DOMAIN@default           |
-|                        | - API mailgun+api://KEY:DOMAIN@default              |
-+------------------------+-----------------------------------------------------+
-| `Mailjet`_             | - SMTP mailjet+smtp://ACCESS_KEY:SECRET_KEY@default |
-|                        | - HTTP n/a                                          |
-|                        | - API mailjet+api://ACCESS_KEY:SECRET_KEY@default   |
-+------------------------+-----------------------------------------------------+
-| `MailPace`_            | - SMTP mailpace+api://API_TOKEN@default             |
-|                        | - HTTP n/a                                          |
-|                        | - API mailpace+api://API_TOKEN@default              |
-+------------------------+-----------------------------------------------------+
-| `Postmark`_            | - SMTP postmark+smtp://ID@default                   |
-|                        | - HTTP n/a                                          |
-|                        | - API postmark+api://KEY@default                    |
-+------------------------+-----------------------------------------------------+
-| `Resend`_              | - SMTP resend+smtp://resend:API_KEY@default         |
-|                        | - HTTP n/a                                          |
-|                        | - API resend+api://API_KEY@default                  |
-+------------------------+-----------------------------------------------------+
-| `Scaleway`_            | - SMTP scaleway+smtp://PROJECT_ID:API_KEY@default   |
-|                        | - HTTP n/a                                          |
-|                        | - API scaleway+api://PROJECT_ID:API_KEY@default     |
-+------------------------+-----------------------------------------------------+
-| `Sendgrid`_            | - SMTP sendgrid+smtp://KEY@default                  |
-|                        | - HTTP n/a                                          |
-|                        | - API sendgrid+api://KEY@default                    |
-+------------------------+-----------------------------------------------------+
++------------------------+---------------------------------------------------------+
+| Provider               | Formats                                                 |
++========================+=========================================================+
+| `Amazon SES`_          | - SMTP ``ses+smtp://USERNAME:PASSWORD@default``         |
+|                        | - HTTP ``ses+https://ACCESS_KEY:SECRET_KEY@default``    |
+|                        | - API ``ses+api://ACCESS_KEY:SECRET_KEY@default``       |
++------------------------+---------------------------------------------------------+
+| `Azure`_               | - API ``azure+api://ACS_RESOURCE_NAME:KEY@default``     |
++------------------------+---------------------------------------------------------+
+| `Brevo`_               | - SMTP ``brevo+smtp://USERNAME:PASSWORD@default``       |
+|                        | - HTTP n/a                                              |
+|                        | - API ``brevo+api://KEY@default``                       |
++------------------------+---------------------------------------------------------+
+| `Google Gmail`_        | - SMTP ``gmail+smtp://USERNAME:APP-PASSWORD@default``   |
+|                        | - HTTP n/a                                              |
+|                        | - API n/a                                               |
++------------------------+---------------------------------------------------------+
+| `Infobip`_             | - SMTP ``infobip+smtp://KEY@default``                   |
+|                        | - HTTP n/a                                              |
+|                        | - API ``infobip+api://KEY@BASE_URL``                    |
++------------------------+---------------------------------------------------------+
+| `Mandrill`_            | - SMTP ``mandrill+smtp://USERNAME:PASSWORD@default``    |
+|                        | - HTTP ``mandrill+https://KEY@default``                 |
+|                        | - API ``mandrill+api://KEY@default``                    |
++------------------------+---------------------------------------------------------+
+| `MailerSend`_          | - SMTP ``mailersend+smtp://KEY@default``                |
+|                        | - HTTP n/a                                              |
+|                        | - API ``mailersend+api://KEY@BASE_URL``                 |
++------------------------+---------------------------------------------------------+
+| `Mailgun`_             | - SMTP ``mailgun+smtp://USERNAME:PASSWORD@default``     |
+|                        | - HTTP ``mailgun+https://KEY:DOMAIN@default``           |
+|                        | - API ``mailgun+api://KEY:DOMAIN@default``              |
++------------------------+---------------------------------------------------------+
+| `Mailjet`_             | - SMTP ``mailjet+smtp://ACCESS_KEY:SECRET_KEY@default`` |
+|                        | - HTTP n/a                                              |
+|                        | - API ``mailjet+api://ACCESS_KEY:SECRET_KEY@default``   |
++------------------------+---------------------------------------------------------+
+| `Mailomat`_            | - SMTP ``mailomat+smtp://USERNAME:PASSWORD@default``    |
+|                        | - HTTP n/a                                              |
+|                        | - API ``mailomat+api://KEY@default``                    |
++------------------------+---------------------------------------------------------+
+| `MailPace`_            | - SMTP ``mailpace+api://API_TOKEN@default``             |
+|                        | - HTTP n/a                                              |
+|                        | - API ``mailpace+api://API_TOKEN@default``              |
++------------------------+---------------------------------------------------------+
+| `Mailtrap`_            | - SMTP ``mailtrap+smtp://PASSWORD@default``             |
+|                        | - HTTP n/a                                              |
+|                        | - API ``mailtrap+api://API_TOKEN@default``              |
++------------------------+---------------------------------------------------------+
+| `Postal`_              | - SMTP n/a                                              |
+|                        | - HTTP n/a                                              |
+|                        | - API ``postal+api://API_KEY@BASE_URL``                 |
++------------------------+---------------------------------------------------------+
+| `Postmark`_            | - SMTP ``postmark+smtp://ID@default``                   |
+|                        | - HTTP n/a                                              |
+|                        | - API ``postmark+api://KEY@default``                    |
++------------------------+---------------------------------------------------------+
+| `Resend`_              | - SMTP ``resend+smtp://resend:API_KEY@default``         |
+|                        | - HTTP n/a                                              |
+|                        | - API ``resend+api://API_KEY@default``                  |
++------------------------+---------------------------------------------------------+
+| `Scaleway`_            | - SMTP ``scaleway+smtp://PROJECT_ID:API_KEY@default``   |
+|                        | - HTTP n/a                                              |
+|                        | - API ``scaleway+api://PROJECT_ID:API_KEY@default``     |
++------------------------+---------------------------------------------------------+
+| `Sendgrid`_            | - SMTP ``sendgrid+smtp://KEY@default``                  |
+|                        | - HTTP n/a                                              |
+|                        | - API ``sendgrid+api://KEY@default``                    |
++------------------------+---------------------------------------------------------+
+| `Sweego`_              | - SMTP ``sweego+smtp://LOGIN:PASSWORD@HOST:PORT``       |
+|                        | - HTTP n/a                                              |
+|                        | - API ``sweego+api://API_KEY@default``                  |
++------------------------+---------------------------------------------------------+
 
-.. caution::
+.. warning::
 
     If your credentials contain special characters, you must URL-encode them.
     For example, the DSN ``ses+smtp://ABC1234:abc+12/345@default`` should be
     configured as ``ses+smtp://ABC1234:abc%2B12%2F345@default``
 
-.. caution::
+.. warning::
 
     If you want to use the ``ses+smtp`` transport together with :doc:`Messenger </messenger>`
     to :ref:`send messages in background <mailer-sending-messages-async>`,
     you need to add the ``ping_threshold`` parameter to your ``MAILER_DSN`` with
     a value lower than ``10``: ``ses+smtp://USERNAME:PASSWORD@default?ping_threshold=9``
 
-.. caution::
+.. warning::
 
     If you send custom headers when using the `Amazon SES`_ transport (to receive
     them later via a webhook), make sure to use the ``ses+https`` provider because
@@ -276,7 +300,7 @@ party provider:
 .. note::
 
     The specific transports, e.g. ``mailgun+smtp`` are designed to work without any manual configuration.
-    Changing the port by appending it to your DSN is not supported for any of these ``<provider>+smtp` transports.
+    Changing the port by appending it to your DSN is not supported for any of these ``<provider>+smtp`` transports.
     If you need to change the port, use the ``smtp`` transport instead, like so:
 
     .. code-block:: env
@@ -361,7 +385,7 @@ setting the ``auto_tls`` option to ``false`` in the DSN::
 
     $dsn = 'smtp://user:pass@10.0.0.25?auto_tls=false';
 
-.. caution::
+.. warning::
 
     It's not recommended to disable TLS while connecting to an SMTP server over
     the Internet, but it can be useful when both the application and the SMTP
@@ -474,7 +498,7 @@ and create an :class:`Symfony\\Component\\Mime\\Email` object::
     use Symfony\Component\HttpFoundation\Response;
     use Symfony\Component\Mailer\MailerInterface;
     use Symfony\Component\Mime\Email;
-    use Symfony\Component\Routing\Annotation\Route;
+    use Symfony\Component\Routing\Attribute\Route;
 
     class MailerController extends AbstractController
     {
@@ -518,6 +542,10 @@ both strings or address objects::
         // email address as a simple string
         ->from('fabien@example.com')
 
+        // non-ASCII characters are supported both in the local part and the domain;
+        // if the SMTP server doesn't support this feature, you'll see an exception
+        ->from('jânë.dœ@ëxãmplę.com')
+
         // email address as an object
         ->from(new Address('fabien@example.com'))
 
@@ -537,6 +565,11 @@ both strings or address objects::
     Instead of calling ``->from()`` *every* time you create a new email, you can
     :ref:`configure emails globally <mailer-configure-email-globally>` to set the
     same ``From`` email to all messages.
+
+.. versionadded:: 7.2
+
+    Support for non-ASCII email addresses (e.g. ``jânë.dœ@ëxãmplę.com``)
+    was introduced in Symfony 7.2.
 
 .. note::
 
@@ -576,8 +609,8 @@ header, etc.) but most of the times you'll set text headers::
 
     $email = (new Email())
         ->getHeaders()
-            // this non-standard header tells compliant autoresponders ("email holiday mode") to not
-            // reply to this message because it's an automated email
+            // this non-standard header tells compliant autoresponders ("email holiday mode")
+            // to not reply to this message because it's an automated email
             ->addTextHeader('X-Auto-Response-Suppress', 'OOF, DR, RN, NRN, AutoReply')
 
             // use an array if you want to add a header with multiple values
@@ -665,8 +698,8 @@ file or stream::
 Use the ``asInline()`` method to embed the content instead of attaching it.
 
 The second optional argument of both methods is the image name ("Content-ID" in
-the MIME standard). Its value is an arbitrary string used later to reference the
-images inside the HTML contents::
+the MIME standard). Its value is an arbitrary string that must be unique in each
+email message and is used later to reference the images inside the HTML contents::
 
     $email = (new Email())
         // ...
@@ -680,16 +713,18 @@ images inside the HTML contents::
         ->html('... <div background="cid:footer-signature"> ... </div> ...')
     ;
 
+The actual Content-ID value present in the e-mail source will be randomly generated by Symfony.
 You can also use the :method:`DataPart::setContentId() <Symfony\\Component\\Mime\\Part\\DataPart::setContentId>`
 method to define a custom Content-ID for the image and use it as its ``cid`` reference::
 
     $part = new DataPart(new File('/path/to/images/signature.gif'));
-    $part->setContentId('footer-signature');
+    // according to the spec, the Content-ID value must include at least one '@' character
+    $part->setContentId('footer-signature@my-app');
 
     $email = (new Email())
         // ...
         ->addPart($part->asInline())
-        ->html('... <img src="cid:footer-signature"> ...')
+        ->html('... <img src="cid:footer-signature@my-app"> ...')
     ;
 
 .. _mailer-configure-email-globally:
@@ -760,7 +795,7 @@ and headers.
             $mailer->header('X-Custom-Header')->value('foobar');
         };
 
-.. caution::
+.. warning::
 
     Some third-party providers don't support the usage of keywords like ``from``
     in the ``headers``. Check out your provider's documentation before setting
@@ -789,6 +824,8 @@ Catch that exception to recover from the error or to display some message::
         // error message or try to resend the message
     }
 
+.. _mailer-debugging-emails:
+
 Debugging Emails
 ----------------
 
@@ -797,6 +834,10 @@ The :class:`Symfony\\Component\\Mailer\\SentMessage` object returned by the
 provides access to the original message (``getOriginalMessage()``) and to some
 debug information (``getDebug()``) such as the HTTP calls done by the HTTP
 transports, which is useful to debug errors.
+
+You can also access :class:`Symfony\\Component\\Mailer\\SentMessage` by listening
+to the :ref:`SentMessageEvent <mailer-sent-message-event>` and retrieve ``getDebug()``
+by listening to the :ref:`FailedMessageEvent <mailer-failed-message-event>`.
 
 .. note::
 
@@ -872,7 +913,7 @@ Then, create the template:
     <p><code>{{ email.to[0].address }}</code></p>
 
     <p>
-        <a href="#">Click here to activate your account</a>
+        <a href="#">Activate your account</a>
         (this link is valid until {{ expiration_date|date('F jS') }})
     </p>
 
@@ -1105,7 +1146,7 @@ the entire email contents from Markdown to HTML:
         You signed up to our site using the following email:
         `{{ email.to[0].address }}`
 
-        [Click here to activate your account]({{ url('...') }})
+        [Activate your account]({{ url('...') }})
     {% endapply %}
 
 .. _mailer-inky:
@@ -1183,7 +1224,7 @@ Before signing/encrypting messages, make sure to have:
     When using OpenSSL to generate certificates, make sure to add the
     ``-addtrust emailProtection`` command option.
 
-.. caution::
+.. warning::
 
     Signing and encrypting messages require their contents to be fully rendered.
     For example, the content of :ref:`templated emails <mailer-twig>` is rendered
@@ -1208,7 +1249,7 @@ using for example OpenSSL or obtained at an official Certificate Authority (CA).
 The email recipient must have the CA certificate in the list of trusted issuers
 in order to verify the signature.
 
-.. caution::
+.. warning::
 
     If you use message signature, sending to ``Bcc`` will be removed from the
     message. If you need to send a message to multiple recipients, you need
@@ -1560,6 +1601,7 @@ The following transports currently support tags and metadata:
 
 * Brevo
 * Mailgun
+* Mailtrap
 * Mandrill
 * Postmark
 * Sendgrid
@@ -1592,7 +1634,7 @@ Here's an example of making one available to download::
     use Symfony\Component\HttpFoundation\Response;
     use Symfony\Component\HttpFoundation\ResponseHeaderBag;
     use Symfony\Component\Mime\DraftEmail;
-    use Symfony\Component\Routing\Annotation\Route;
+    use Symfony\Component\Routing\Attribute\Route;
 
     class DownloadEmailController extends AbstractController
     {
@@ -1665,28 +1707,26 @@ and their priorities:
 
     $ php bin/console debug:event-dispatcher "Symfony\Component\Mailer\Event\MessageEvent"
 
+.. _mailer-sent-message-event:
+
 SentMessageEvent
 ~~~~~~~~~~~~~~~~
 
 **Event Class**: :class:`Symfony\\Component\\Mailer\\Event\\SentMessageEvent`
 
 ``SentMessageEvent`` allows you to act on the :class:`Symfony\\Component\\\Mailer\\\SentMessage`
-class to access the original message (``getOriginalMessage()``) and some debugging
-information (``getDebug()``) such as the HTTP calls made by the HTTP transports,
-which is useful for debugging errors::
+class to access the original message (``getOriginalMessage()``) and some
+:ref:`debugging information <mailer-debugging-emails>` (``getDebug()``) such as
+the HTTP calls made by the HTTP transports, which is useful for debugging errors::
 
     use Symfony\Component\EventDispatcher\EventSubscriberInterface;
     use Symfony\Component\Mailer\Event\SentMessageEvent;
-    use Symfony\Component\Mailer\SentMessage;
 
     public function onMessage(SentMessageEvent $event): void
     {
-        $message = $event->getMessage();
-        if (!$message instanceof SentMessage) {
-            return;
-        }
+        $message $event->getMessage();
 
-        // do something with the message
+        // do something with the message (e.g. get its id)
     }
 
 Execute this command to find out which listeners are registered for this event
@@ -1696,20 +1736,28 @@ and their priorities:
 
     $ php bin/console debug:event-dispatcher "Symfony\Component\Mailer\Event\SentMessageEvent"
 
+.. _mailer-failed-message-event:
+
 FailedMessageEvent
 ~~~~~~~~~~~~~~~~~~
 
 **Event Class**: :class:`Symfony\\Component\\Mailer\\Event\\FailedMessageEvent`
 
-``FailedMessageEvent`` allows acting on the the initial message in case of a failure::
+``FailedMessageEvent`` allows acting on the initial message in case of a failure
+and some :ref:`debugging information <mailer-debugging-emails>` (``getDebug()``)
+such as the HTTP calls made by the HTTP transports, which is useful for debugging errors::
 
     use Symfony\Component\EventDispatcher\EventSubscriberInterface;
     use Symfony\Component\Mailer\Event\FailedMessageEvent;
+    use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 
     public function onMessage(FailedMessageEvent $event): void
     {
         // e.g you can get more information on this error when sending an email
-        $event->getError();
+        $error = $event->getError();
+        if ($error instanceof TransportExceptionInterface) {
+            $error->getDebug();
+        }
 
         // do something with the message
     }
@@ -1852,6 +1900,75 @@ a specific address, instead of the *real* address:
             ;
         };
 
+Use the ``allowed_recipients`` option to specify exceptions to the behavior defined
+in the ``recipients`` option; allowing emails directed to these specific recipients
+to maintain their original destination:
+
+.. configuration-block::
+
+    .. code-block:: yaml
+
+        # config/packages/mailer.yaml
+        when@dev:
+            framework:
+                mailer:
+                    envelope:
+                        recipients: ['youremail@example.com']
+                        allowed_recipients:
+                            - 'internal@example.com'
+                            # you can also use regular expression to define allowed recipients
+                            - 'internal-.*@example.(com|fr)'
+
+    .. code-block:: xml
+
+        <!-- config/packages/mailer.xml -->
+        <?xml version="1.0" encoding="UTF-8" ?>
+        <container xmlns="http://symfony.com/schema/dic/services"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xmlns:framework="http://symfony.com/schema/dic/symfony"
+            xsi:schemaLocation="http://symfony.com/schema/dic/services
+                https://symfony.com/schema/dic/services/services-1.0.xsd
+                http://symfony.com/schema/dic/symfony https://symfony.com/schema/dic/symfony/symfony-1.0.xsd">
+
+            <!-- ... -->
+            <framework:config>
+                <framework:mailer>
+                    <framework:envelope>
+                        <framework:recipient>youremail@example.com</framework:recipient>
+                        <framework:allowed-recipient>internal@example.com</framework:allowed-recipient>
+                        <!-- you can also use regular expression to define allowed recipients -->
+                        <framework:allowed-recipient>internal-.*@example.(com|fr)</framework:allowed-recipient>
+                    </framework:envelope>
+                </framework:mailer>
+            </framework:config>
+        </container>
+
+    .. code-block:: php
+
+        // config/packages/mailer.php
+        use Symfony\Config\FrameworkConfig;
+
+        return static function (FrameworkConfig $framework): void {
+            // ...
+            $framework->mailer()
+                ->envelope()
+                    ->recipients(['youremail@example.com'])
+                    ->allowedRecipients([
+                        'internal@example.com',
+                        // you can also use regular expression to define allowed recipients
+                        'internal-.*@example.(com|fr)',
+                    ])
+            ;
+        };
+
+With this configuration, all emails will be sent to ``youremail@example.com``,
+except for those sent to ``internal@example.com``, ``internal-monitoring@example.fr``,
+etc., which will receive emails as usual.
+
+.. versionadded:: 7.1
+
+    The ``allowed_recipients`` option was introduced in Symfony 7.1.
+
 Write a Functional Test
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1908,12 +2025,16 @@ the :class:`Symfony\\Bundle\\FrameworkBundle\\Test\\MailerAssertionsTrait`::
 .. _`Mailgun`: https://github.com/symfony/symfony/blob/{version}/src/Symfony/Component/Mailer/Bridge/Mailgun/README.md
 .. _`Mailjet`: https://github.com/symfony/symfony/blob/{version}/src/Symfony/Component/Mailer/Bridge/Mailjet/README.md
 .. _`Markdown syntax`: https://commonmark.org/
+.. _`Mailomat`: https://github.com/symfony/symfony/blob/{version}/src/Symfony/Component/Mailer/Bridge/Mailomat/README.md
 .. _`MailPace`: https://github.com/symfony/symfony/blob/{version}/src/Symfony/Component/Mailer/Bridge/MailPace/README.md
 .. _`OpenSSL PHP extension`: https://www.php.net/manual/en/book.openssl.php
 .. _`PEM encoded`: https://en.wikipedia.org/wiki/Privacy-Enhanced_Mail
+.. _`Postal`: https://github.com/symfony/symfony/blob/{version}/src/Symfony/Component/Mailer/Bridge/Postal/README.md
 .. _`Postmark`: https://github.com/symfony/symfony/blob/{version}/src/Symfony/Component/Mailer/Bridge/Postmark/README.md
+.. _`Mailtrap`: https://github.com/symfony/symfony/blob/{version}/src/Symfony/Component/Mailer/Bridge/Mailtrap/README.md
 .. _`Resend`: https://github.com/symfony/symfony/blob/{version}/src/Symfony/Component/Mailer/Bridge/Resend/README.md
 .. _`RFC 3986`: https://www.ietf.org/rfc/rfc3986.txt
 .. _`S/MIME`: https://en.wikipedia.org/wiki/S/MIME
 .. _`Scaleway`: https://github.com/symfony/symfony/blob/{version}/src/Symfony/Component/Mailer/Bridge/Scaleway/README.md
 .. _`SendGrid`: https://github.com/symfony/symfony/blob/{version}/src/Symfony/Component/Mailer/Bridge/Sendgrid/README.md
+.. _`Sweego`: https://github.com/symfony/symfony/blob/{version}/src/Symfony/Component/Mailer/Bridge/Sweego/README.md

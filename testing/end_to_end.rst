@@ -49,9 +49,9 @@ to install ChromeDriver and geckodriver locally:
 
     $ vendor/bin/bdi detect drivers
 
-Panther will detect and use automatically drivers stored in the ``drivers/`` directory
+Panther will detect and automatically use drivers stored in the ``drivers/`` directory
 of your project when installing them manually. You can download `ChromeDriver`_
-for Chromium or Chromeand `GeckoDriver`_ for Firefox and put them anywhere in
+for Chromium or Chrome and `GeckoDriver`_ for Firefox and put them anywhere in
 your ``PATH`` or in the ``drivers/`` directory of your project.
 
 Alternatively, you can use the package manager of your operating system
@@ -111,12 +111,12 @@ Here is an example of a snippet that uses Panther to test an application::
     $client->clickLink('Getting started');
 
     // wait for an element to be present in the DOM, even if hidden
-    $crawler = $client->waitFor('#installing-the-framework');
+    $crawler = $client->waitFor('#bootstrapping-the-core-library');
     // you can also wait for an element to be visible
-    $crawler = $client->waitForVisibility('#installing-the-framework');
+    $crawler = $client->waitForVisibility('#bootstrapping-the-core-library');
 
     // get the text of an element thanks to the query selector syntax
-    echo $crawler->filter('#installing-the-framework')->text();
+    echo $crawler->filter('div:has(> #bootstrapping-the-core-library)')->text();
     // take a screenshot of the current page
     $client->takeScreenshot('screen.png');
 
@@ -132,7 +132,7 @@ Creating a TestCase
 ~~~~~~~~~~~~~~~~~~~
 
 The ``PantherTestCase`` class allows you to write end-to-end tests. It
-automatically starts your app using the built-in PHP web server and let
+automatically starts your app using the built-in PHP web server and lets
 you crawl it using Panther. To provide all the testing tools you're used
 to, it extends `PHPUnit`_'s ``TestCase``.
 
@@ -264,8 +264,7 @@ future::
         }
     }
 
-You can then run this test by using PHPUnit, like you would do for any other
-test:
+You can then run this test using PHPUnit, like you would for any other test:
 
 .. code-block:: terminal
 
@@ -306,13 +305,13 @@ faster. Two alternative clients are available:
 * The second leverages :class:`Symfony\\Component\\BrowserKit\\HttpBrowser`.
   It is an intermediate between Symfony's kernel and Panther's test clients.
   ``HttpBrowser`` sends real HTTP requests using the
-  :doc:`HttpClient component </http_client>`. It is fast and is able to browse
+  :doc:`HttpClient component </http_client>`. It is fast and can browse
   any webpage, not only the ones of the application under test.
   However, HttpBrowser doesn't support JavaScript and other advanced features
   because it is entirely written in PHP. This one can be used in any PHP
   application.
 
-Because all clients implement the exact same API, you can switch from one to
+Because all clients implement the same API, you can switch from one to
 another just by calling the appropriate factory method, resulting in a good
 trade-off for every single test case: if JavaScript is needed or not, if an
 authentication against an external SSO has to be done, etc.
@@ -356,10 +355,10 @@ Testing Real-Time Applications
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Panther provides a convenient way to test applications with real-time
-capabilities which use `Mercure`_, `WebSocket`_ and similar technologies.
+capabilities that use `Mercure`_, `WebSocket`_ and similar technologies.
 
 The ``PantherTestCase::createAdditionalPantherClient()`` method can create
-additional, isolated browsers which can interact with other ones. For instance,
+additional, isolated browsers that can interact with other ones. For instance,
 this can be useful to test a chat application having several users
 connected simultaneously::
 
@@ -452,13 +451,29 @@ To use a proxy server, you have to set the ``PANTHER_CHROME_ARGUMENTS``:
     # .env.test
     PANTHER_CHROME_ARGUMENTS='--proxy-server=socks://127.0.0.1:9050'
 
+Using Selenium With the Built-In Web Server
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you want to use `Selenium Grid`_ with the built-in web server, you need to
+configure the Panther client as follows::
+
+    $client = Client::createPantherClient(
+        options: [
+            'browser' => PantherTestCase::SELENIUM,
+        ],
+        managerOptions: [
+            'host' => 'http://selenium-hub:4444', // the host of the Selenium Server (Grid)
+            'capabilities' => DesiredCapabilities::firefox(), // the capabilities of the browser
+        ],
+    );
+
 Accepting Self-Signed SSL Certificates
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To force Chrome to accept invalid and self-signed certificates, you can set the
 following environment variable: ``PANTHER_CHROME_ARGUMENTS='--ignore-certificate-errors'``.
 
-.. caution::
+.. danger::
 
     This option is insecure, use it only for testing in development environments,
     never in production (e.g. for web crawlers).
@@ -498,13 +513,13 @@ Having a Multi-domain Application
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 It happens that your PHP/Symfony application might serve several different
-domain names. As Panther saves the Client in memory between tests to improve
+domain names. As Panther saves the client in memory between tests to improve
 performance, you will have to run your tests in separate
 processes if you write several tests using Panther for different domain names.
 
 To do so, you can use the native ``@runInSeparateProcess`` PHPUnit annotation.
 Here is an example using the ``external_base_uri`` option to determine the
-domain name used by the Client when using separate processes::
+domain name used by the client when using separate processes::
 
     // tests/FirstDomainTest.php
     namespace App\Tests;
@@ -598,6 +613,13 @@ behavior:
     Toggle the browser's dev tools (default ``enabled``, useful to debug)
 ``PANTHER_ERROR_SCREENSHOT_ATTACH``
     Add screenshots mentioned above to test output in junit attachment format
+``PANTHER_NO_REDUCED_MOTION``
+    Disable non-essential movement in the browser (e.g. animations)
+
+.. versionadded:: 2.2.0
+
+    The support for the ``PANTHER_NO_REDUCED_MOTION`` env var was added
+    in Panther 2.2.0.
 
 Chrome Specific Environment Variables
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -605,7 +627,8 @@ Chrome Specific Environment Variables
 ``PANTHER_NO_SANDBOX``
     Disable `Chrome's sandboxing`_ (unsafe, but allows to use Panther in containers)
 ``PANTHER_CHROME_ARGUMENTS``
-    Customize Chrome arguments. You need to set ``PANTHER_NO_HEADLESS`` to fully customize
+    Customize Chrome arguments. You need to set ``PANTHER_NO_HEADLESS`` to ``1``
+    to fully customize
 ``PANTHER_CHROME_BINARY``
     To use another ``google-chrome`` binary
 
@@ -617,12 +640,33 @@ Firefox Specific Environment Variables
 ``PANTHER_FIREFOX_BINARY``
     To use another ``firefox`` binary
 
+Changing the Size of the Browser Window
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+It's possible to control the size of the browser window. This also controls the
+size of the screenshots.
+
+This is how you would do it with Chrome::
+
+    $client = Client::createChromeClient(null, ['--window-size=1500,4000']);
+
+You can achieve the same thing by setting the ``PANTHER_CHROME_ARGUMENTS`` env
+var to ``--window-size=1500,4000``.
+
+On Firefox, here is how you would do it::
+
+    use Facebook\WebDriver\WebDriverDimension;
+
+    $client = Client::createFirefoxClient();
+    $size = new WebDriverDimension(1500, 4000);
+    $client->manage()->window()->setSize($size);
+
 .. _panther_interactive-mode:
 
 Interactive Mode
 ----------------
 
-Panther can make a pause in your tests suites after a failure.
+Panther can make a pause in your test suites after a failure.
 Thanks to this break time, you can investigate the encountered problem through
 the web browser. To enable this mode, you need the ``--debug`` PHPUnit option
 without the headless mode:
@@ -710,7 +754,7 @@ Here is a minimal ``.travis.yaml`` file to run Panther tests:
 
     language: php
     addons:
-      # If you don't use Chrome, or Firefox, remove the corresponding line
+      # If you don't use Chrome or Firefox, remove the corresponding line
       chrome: stable
       firefox: latest
 
@@ -789,16 +833,64 @@ The following features are not currently supported:
 * Updating existing documents (browsers are mostly used to consume data, not to create webpages)
 * Setting form values using the multidimensional PHP array syntax
 * Methods returning an instance of ``\DOMElement`` (because this library uses ``WebDriverElement`` internally)
-* Selecting invalid choices in select
+* Selecting invalid choices in the select
 
 Also, there is a known issue if you are using Bootstrap 5. It implements a
-scrolling effect, which tends to mislead Panther. To fix this, we advise you to
+scrolling effect which tends to mislead Panther. To fix this, we advise you to
 deactivate this effect by setting the Bootstrap 5 ``$enable-smooth-scroll``
 variable to ``false`` in your style file:
 
 .. code-block:: scss
 
     $enable-smooth-scroll: false;
+
+Assets not Loading when Using the PHP Built-In Server
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Sometimes, your assets might not load during tests. This happens because Panther
+uses the `PHP built-in server`_ to serve your app. If asset files (or any requested
+URI that's not a ``.php`` file) aren't in your public directory, the built-in
+server will return a 404 error. This often happens when letting the :doc:`AssetMapper component </frontend/asset_mapper>`
+handle your application assets in the ``dev`` environment.
+
+One solution when using AssetMapper is to :ref:`compile assets <asset-mapper-compile-assets>`
+before running your tests. This will also speed up your tests, as Symfony won't
+need to handle the assets, allowing the PHP built-in server to serve them directly.
+
+Another option is to create a file called ``tests/router.php`` and add the following to it::
+
+    // tests/router.php
+    if (is_file($_SERVER['DOCUMENT_ROOT'].\DIRECTORY_SEPARATOR.$_SERVER['SCRIPT_NAME'])) {
+        return false;
+    }
+
+    $script = 'index.php';
+
+    $_SERVER = array_merge($_SERVER, $_ENV);
+    $_SERVER['SCRIPT_FILENAME'] = $_SERVER['DOCUMENT_ROOT'].\DIRECTORY_SEPARATOR.$script;
+
+    $_SERVER['SCRIPT_NAME'] = \DIRECTORY_SEPARATOR.$script;
+    $_SERVER['PHP_SELF'] = \DIRECTORY_SEPARATOR.$script;
+
+    require $script;
+
+Then declare it as a router for Panther server in ``phpunit.xml.dist`` using the
+``PANTHER_WEB_SERVER_ROUTER`` environment variable:
+
+.. code-block:: xml
+
+    <!-- phpunit.xml.dist -->
+    <phpunit>
+        <!-- ... -->
+        <php>
+            <!-- ... -->
+            <server name="PANTHER_WEB_SERVER_ROUTER" value="./tests/router.php"/>
+        </php>
+    </phpunit>
+
+.. seealso::
+
+    See the `Functional Testing tutorial`_ on SymfonyCasts.
 
 Additional Documentation
 ------------------------
@@ -826,3 +918,6 @@ documentation:
 .. _`Gitlab CI`: https://docs.gitlab.com/ee/ci/
 .. _`AppVeyor`: https://www.appveyor.com/
 .. _`LiipFunctionalTestBundle`: https://github.com/liip/LiipFunctionalTestBundle
+.. _`PHP built-in server`: https://www.php.net/manual/en/features.commandline.webserver.php
+.. _`Functional Testing tutorial`: https://symfonycasts.com/screencast/last-stack/testing
+.. _`Selenium Grid`: https://www.selenium.dev/documentation/grid/

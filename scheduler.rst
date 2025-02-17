@@ -22,6 +22,11 @@ install the scheduler component:
 
     $ composer require symfony/scheduler
 
+.. tip::
+
+    Starting in `MakerBundle`_ ``v1.58.0``, you can run ``php bin/console make:schedule``
+    to generate a basic schedule, that you can customize to create your own Scheduler.
+
 Symfony Scheduler Basics
 ------------------------
 
@@ -149,7 +154,7 @@ the frequency of the message. Symfony provides different types of triggers:
 
 :class:`Symfony\\Component\\Scheduler\\Trigger\\JitterTrigger`
     A trigger that adds a random jitter to a given trigger. The jitter is some
-    time that it's added/subtracted to the original triggering date/time. This
+    time that is added to the original triggering date/time. This
     allows to distribute the load of the scheduled tasks instead of running them
     all at the exact same time.
 
@@ -306,7 +311,7 @@ For example, if you want to send customer reports daily except for holiday perio
             }
 
             // loop until you get the next run date that is not a holiday
-            while (!$this->isHoliday($nextRun) {
+            while ($this->isHoliday($nextRun)) {
                 $nextRun = $this->inner->getNextRunDate($nextRun);
             }
 
@@ -389,9 +394,10 @@ checks for messages to be generated::
                         new ExcludeHolidaysTrigger(
                             CronExpressionTrigger::fromSpec('@daily'),
                         ),
-                    // instead of being static as in the previous example
-                    new CallbackMessageProvider([$this, 'generateReports'], 'foo')),
-                    RecurringMessage::cron(‘3 8 * * 1’, new CleanUpOldSalesReport())
+                        // instead of being static as in the previous example
+                        new CallbackMessageProvider([$this, 'generateReports'], 'foo')
+                    ),
+                    RecurringMessage::cron('3 8 * * 1', new CleanUpOldSalesReport())
                 );
         }
 
@@ -449,6 +455,11 @@ The attribute takes more parameters to customize the trigger::
     // defines the timezone to use
     #[AsCronTask('0 0 * * *', timezone: 'Africa/Malabo')]
 
+    // when applying this attribute to a Symfony console command, you can pass
+    // arguments and options to the command using the 'arguments' option:
+    #[AsCronTask('0 0 * * *', arguments: 'some_argument --some-option --another-option=some_value')]
+    class MyCommand extends Command
+
 .. _scheduler-attributes-periodic-task:
 
 ``AsPeriodicTask`` Example
@@ -493,8 +504,10 @@ The ``#[AsPeriodicTask]`` attribute takes many parameters to customize the trigg
         }
     }
 
-    // defines the timezone to use
-    #[AsPeriodicTask(frequency: '1 day', timezone: 'Africa/Malabo')]
+    // when applying this attribute to a Symfony console command, you can pass
+    // arguments and options to the command using the 'arguments' option:
+    #[AsPeriodicTask(frequency: '1 day', arguments: 'some_argument --some-option --another-option=some_value')]
+    class MyCommand extends Command
 
 Managing Scheduled Messages
 ---------------------------
@@ -563,7 +576,7 @@ In your handler, you can check a condition and, if affirmative, access the
         }
     }
 
-    // src/Scheduler/Handler/.php
+    // src/Scheduler/Handler/CleanUpOldSalesReportHandler.php
     namespace App\Scheduler\Handler;
 
     #[AsMessageHandler]
@@ -627,14 +640,18 @@ being transferred and processed by its handler::
     #[AsSchedule('uptoyou')]
     class SaleTaskProvider implements ScheduleProviderInterface
     {
+        public function __construct(private EventDispatcherInterface $dispatcher)
+        {
+        }
+
         public function getSchedule(): Schedule
         {
             $this->removeOldReports = RecurringMessage::cron('3 8 * * 1', new CleanUpOldSalesReport());
 
-            return $this->schedule ??= (new Schedule())
+            return $this->schedule ??= (new Schedule($this->dispatcher))
                 ->with(
                     // ...
-                );
+                )
                 ->before(function(PreRunEvent $event) {
                     $message = $event->getMessage();
                     $messageContext = $event->getMessageContext();
@@ -646,14 +663,14 @@ being transferred and processed by its handler::
                     $schedule->removeById($messageContext->id);
 
                     // allow to call the ShouldCancel() and avoid the message to be handled
-                        $event->shouldCancel(true);
-                }
+                    $event->shouldCancel(true);
+                })
                 ->after(function(PostRunEvent $event) {
                     // Do what you want
-                }
+                })
                 ->onFailure(function(FailureEvent $event) {
                     // Do what you want
-                }
+                });
         }
     }
 
@@ -749,8 +766,19 @@ and their priorities:
 
     $ php bin/console debug:event-dispatcher "Symfony\Component\Scheduler\Event\FailureEvent"
 
-Consuming Messages (Running the Worker)
----------------------------------------
+.. _consuming-messages-running-the-worker:
+
+Consuming Messages
+------------------
+
+The Scheduler component offers two ways to consume messages, depending on your
+needs: using the ``messenger:consume`` command or creating a worker programmatically.
+The first solution is the recommended one when using the Scheduler component in
+the context of a full stack Symfony application, the second one is more suitable
+when using the Scheduler component as a standalone component.
+
+Running a Worker
+~~~~~~~~~~~~~~~~
 
 After defining and attaching your recurring messages to a schedule, you'll need
 a mechanism to generate and consume the messages according to their defined frequencies.
@@ -766,6 +794,52 @@ the Messenger component:
 
 .. image:: /_images/components/scheduler/generate_consume.png
     :alt: Symfony Scheduler - generate and consume
+
+.. tip::
+
+    Depending on your deployment scenario, you may prefer automating the execution of
+    the Messenger worker process using tools like cron, Supervisor, or systemd.
+    This ensures workers are running continuously. For more details, refer to the
+    `Deploying to Production`_ section of the Messenger component documentation.
+
+Creating a Consumer Programmatically
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+An alternative to the previous solution is to create and call a worker that
+will consume the messages. The component comes with a ready-to-use worker
+named :class:`Symfony\\Component\\Scheduler\\Scheduler` that you can use in your
+code::
+
+    use Symfony\Component\Scheduler\Scheduler;
+
+    $schedule = (new Schedule())
+        ->with(
+            RecurringMessage::trigger(
+                new ExcludeHolidaysTrigger(
+                    CronExpressionTrigger::fromSpec('@daily'),
+                ),
+                new SendDailySalesReports()
+            ),
+        );
+
+    $scheduler = new Scheduler(handlers: [
+        SendDailySalesReports::class => new SendDailySalesReportsHandler(),
+        // add more handlers if you have more message types
+    ], schedules: [
+        $schedule,
+        // the scheduler can take as many schedules as you need
+    ]);
+
+    // finally, run the scheduler once it's ready
+    $scheduler->run();
+
+.. note::
+
+    The :class:`Symfony\\Component\\Scheduler\\Scheduler` may be used
+    when using the Scheduler component as a standalone component. If
+    you are using it in the framework context, it is highly recommended to
+    use the ``messenger:consume`` command as explained in the previous
+    section.
 
 Debugging the Schedule
 ----------------------
@@ -813,7 +887,8 @@ While this behavior may not necessarily pose a problem, there is a possibility t
 
 That's why the scheduler allows to remember the last execution date of a message
 via the ``stateful`` option (and the :doc:`Cache component </components/cache>`).
-This allows the system to retain the state of the schedule, ensuring that when a worker is restarted, it resumes from the point it left off.::
+This allows the system to retain the state of the schedule, ensuring that when a
+worker is restarted, it resumes from the point it left off::
 
     // src/Scheduler/SaleTaskProvider.php
     namespace App\Scheduler;
@@ -833,6 +908,32 @@ This allows the system to retain the state of the schedule, ensuring that when a
         }
     }
 
+With the ``stateful`` option, all missed messages will be handled. If you need to
+handle a message only once, you can use the ``processOnlyLastMissedRun`` option::
+
+    // src/Scheduler/SaleTaskProvider.php
+    namespace App\Scheduler;
+
+    #[AsSchedule('uptoyou')]
+    class SaleTaskProvider implements ScheduleProviderInterface
+    {
+        public function getSchedule(): Schedule
+        {
+            $this->removeOldReports = RecurringMessage::cron('3 8 * * 1', new CleanUpOldSalesReport());
+
+            return $this->schedule ??= (new Schedule())
+                ->with(
+                    // ...
+                )
+                ->stateful($this->cache)
+                ->processOnlyLastMissedRun(true)
+        }
+    }
+
+.. versionadded:: 7.2
+
+    The ``processOnlyLastMissedRun`` option was introduced in Symfony 7.2.
+
 To scale your schedules more effectively, you can use multiple workers. In such
 cases, a good practice is to add a :doc:`lock </components/lock>` to prevent the
 same task more than once::
@@ -851,7 +952,7 @@ same task more than once::
                 ->with(
                     // ...
                 )
-                ->lock($this->lockFactory->createLock('my-lock')
+                ->lock($this->lockFactory->createLock('my-lock'));
         }
     }
 
@@ -881,6 +982,12 @@ before being further redispatched to its corresponding handler::
         }
     }
 
+When using the ``RedispatchMessage``, Symfony will attach a
+:class:`Symfony\\Component\\Scheduler\\Messenger\\ScheduledStamp` to the message,
+helping you identify those messages when needed.
+
+.. _`MakerBundle`: https://symfony.com/doc/current/bundles/SymfonyMakerBundle/index.html
+.. _`Deploying to Production`: https://symfony.com/doc/current/messenger.html#deploying-to-production
 .. _`Memoizing`: https://en.wikipedia.org/wiki/Memoization
 .. _`cron command-line utility`: https://en.wikipedia.org/wiki/Cron
 .. _`crontab.guru website`: https://crontab.guru/

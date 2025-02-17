@@ -545,7 +545,7 @@ Using Cache Tags
 In applications with many cache keys it could be useful to organize the data stored
 to be able to invalidate the cache more efficiently. One way to achieve that is to
 use cache tags. One or more tags could be added to the cache item. All items with
-the same key could be invalidated with one function call::
+the same tag could be invalidated with one function call::
 
     use Symfony\Contracts\Cache\ItemInterface;
     use Symfony\Contracts\Cache\TagAwareCacheInterface;
@@ -589,8 +589,7 @@ to enable this feature. This could be added by using the following configuration
             cache:
                 pools:
                     my_cache_pool:
-                        adapter: cache.adapter.redis
-                        tags: true
+                        adapter: cache.adapter.redis_tag_aware
 
     .. code-block:: xml
 
@@ -830,7 +829,7 @@ Then, register the ``SodiumMarshaller`` service using this key:
             //->addArgument(['env(base64:CACHE_DECRYPTION_KEY)', 'env(base64:OLD_CACHE_DECRYPTION_KEY)'])
             ->addArgument(new Reference('.inner'));
 
-.. caution::
+.. danger::
 
     This will encrypt the values of the cache items, but not the cache keys. Be
     careful not to leak sensitive data in the keys.
@@ -885,7 +884,7 @@ In the following example, the value is requested from a controller::
 
     use App\Cache\CacheComputation;
     use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-    use Symfony\Component\Routing\Annotation\Route;
+    use Symfony\Component\Routing\Attribute\Route;
     use Symfony\Contracts\Cache\CacheInterface;
     use Symfony\Contracts\Cache\ItemInterface;
 
@@ -895,7 +894,7 @@ In the following example, the value is requested from a controller::
         public function index(CacheInterface $asyncCache): Response
         {
             // pass to the cache the service method that refreshes the item
-            $cachedValue = $cache->get('my_value', [CacheComputation::class, 'compute'])
+            $cachedValue = $asyncCache->get('my_value', [CacheComputation::class, 'compute'])
 
             // ...
         }
@@ -913,13 +912,13 @@ a message bus to compute values in a worker:
             cache:
                 pools:
                     async.cache:
-                        early_expiration_message_bus: async_bus
+                        early_expiration_message_bus: messenger.default_bus
 
             messenger:
                 transports:
                     async_bus: '%env(MESSENGER_TRANSPORT_DSN)%'
                 routing:
-                    Symfony\Component\Cache\Messenger\Message\EarlyExpirationMessage: async_bus
+                    'Symfony\Component\Cache\Messenger\EarlyExpirationMessage': async_bus
 
     .. code-block:: xml
 
@@ -935,12 +934,12 @@ a message bus to compute values in a worker:
         >
             <framework:config>
                 <framework:cache>
-                    <framework:pool name="async.cache" early-expiration-message-bus="async_bus"/>
+                    <framework:pool name="async.cache" early-expiration-message-bus="messenger.default_bus"/>
                 </framework:cache>
 
                 <framework:messenger>
                     <framework:transport name="async_bus">%env(MESSENGER_TRANSPORT_DSN)%</framework:transport>
-                    <framework:routing message-class="Symfony\Component\Cache\Messenger\Message\EarlyExpirationMessage">
+                    <framework:routing message-class="Symfony\Component\Cache\Messenger\EarlyExpirationMessage">
                         <framework:sender service="async_bus"/>
                     </framework:routing>
                 </framework:messenger>
@@ -957,7 +956,7 @@ a message bus to compute values in a worker:
         return static function (FrameworkConfig $framework): void {
             $framework->cache()
                 ->pool('async.cache')
-                    ->earlyExpirationMessageBus('async_bus');
+                    ->earlyExpirationMessageBus('messenger.default_bus');
 
             $framework->messenger()
                 ->transport('async_bus')

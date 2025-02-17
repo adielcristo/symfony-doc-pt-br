@@ -8,8 +8,6 @@ The ``PasswordType`` field renders an input password text box.
 +---------------------------+------------------------------------------------------------------------+
 | Default invalid message   | The password is invalid.                                               |
 +---------------------------+------------------------------------------------------------------------+
-| Legacy invalid message    | The value {{ value }} is not valid.                                    |
-+---------------------------+------------------------------------------------------------------------+
 | Parent type               | :doc:`TextType </reference/forms/types/text>`                          |
 +---------------------------+------------------------------------------------------------------------+
 | Class                     | :class:`Symfony\\Component\\Form\\Extension\\Core\\Type\\PasswordType` |
@@ -45,7 +43,7 @@ Data passed to the form must be a
 :class:`Symfony\\Component\\Security\\Core\\User\\PasswordAuthenticatedUserInterface`
 object.
 
-.. caution::
+.. warning::
 
     To minimize the risk of leaking the plain password, this option can
     only be used with the :ref:`"mapped" option <reference-form-password-mapped>`

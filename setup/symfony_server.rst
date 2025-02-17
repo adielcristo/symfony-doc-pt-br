@@ -17,6 +17,17 @@ Installation
 The Symfony server is part of the ``symfony`` binary created when you
 `install Symfony`_ and has support for Linux, macOS and Windows.
 
+.. tip::
+
+    The Symfony CLI supports auto completion for Bash, Zsh, or Fish shells. You
+    have to install the completion script *once*. Run ``symfony completion
+    --help`` for the installation instructions for your shell. After installing
+    and restarting your terminal, you're all set to use completion (by default,
+    by pressing the Tab key).
+
+    The Symfony CLI will also provide completion for the ``composer`` command
+    and for the ``console`` command if it detects a Symfony project.
+
 .. note::
 
    You can view and contribute to the Symfony CLI source in the
@@ -105,6 +116,20 @@ This command creates a local certificate authority, registers it in your system
 trust store, registers it in Firefox (this is required only for that browser)
 and creates a default certificate for ``localhost`` and ``127.0.0.1``. In other
 words, it does everything for you.
+
+.. tip::
+
+    If you are doing this in WSL (Windows Subsystem for Linux), the newly created
+    local certificate authority needs to be manually imported in Windows. The file
+    is located in ``wsl`` at ``~/.symfony5/certs/default.p12``. The easiest way to
+    do so is to run the following command from ``wsl``:
+
+    .. code-block:: terminal
+
+        $ explorer.exe `wslpath -w $HOME/.symfony5/certs`
+
+    In the file explorer window that just opened, double-click on the file
+    called ``default.p12``.
 
 Before browsing your local application with HTTPS instead of HTTP, restart its
 server stopping and starting it again.
@@ -223,6 +248,9 @@ If the proxy doesn't work as explained in the following sections, check these:
 * Some Operating Systems (e.g. macOS) don't apply by default the proxy settings
   to local hosts and domains. You may need to remove ``*.local`` and/or other
   IP addresses from that list.
+* Windows Operating System **requires** ``localhost`` instead of ``127.0.0.1``
+  when configuring the automatic proxy, otherwise you won't be able to access
+  your local domain from your browser running in Windows.
 
 Defining the Local Domain
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -266,7 +294,7 @@ domains work:
     # Example with Cypress
     $ https_proxy=$(symfony proxy:url) ./node_modules/bin/cypress open
 
-.. note::
+.. warning::
 
     Although env var names are always defined in uppercase, the ``https_proxy``
     env var `is treated differently`_ than other env vars and its name must be
@@ -307,11 +335,6 @@ server provides a ``run`` command to wrap them as follows:
 Configuration file
 ------------------
 
-.. caution::
-
-    This feature is experimental and could change or be removed at any time
-    without prior notice.
-
 There are several options that you can set using a ``.symfony.local.yaml`` config file:
 
 .. code-block:: yaml
@@ -332,8 +355,9 @@ There are several options that you can set using a ``.symfony.local.yaml`` confi
         no_tls: true # Use HTTP instead of HTTPS
         daemon: true # Run the server in the background
         use_gzip: true # Toggle GZIP compression
+        no_workers: true # Do not start workers
 
-.. caution::
+.. warning::
 
     Setting domains in this configuration file will override any domains you set
     using the ``proxy:domain:attach`` command for the current project when you start
@@ -369,6 +393,11 @@ If you like some processes to start automatically, along with the webserver
         # auto start Docker compose when starting server (available since Symfony CLI 5.7.0)
         docker_compose: ~
 
+.. tip::
+
+    You may want to not start workers on some environments like CI. You can use the
+    ``--no-workers`` option to start the server without starting workers.
+
 .. _symfony-server-docker:
 
 Docker Integration
@@ -388,7 +417,7 @@ Consider the following configuration:
 
 .. code-block:: yaml
 
-    # docker-compose.yaml
+    # compose.yaml
     services:
         database:
             ports: [3306]
@@ -401,12 +430,12 @@ variables accordingly with the service name (``database``) as a prefix:
 If the service is not in the supported list below, generic environment
 variables are set: ``PORT``, ``IP``, and ``HOST``.
 
-If the ``docker-compose.yaml`` names do not match Symfony's conventions, add a
+If the ``compose.yaml`` names do not match Symfony's conventions, add a
 label to override the environment variables prefix:
 
 .. code-block:: yaml
 
-    # docker-compose.yaml
+    # compose.yaml
     services:
         db:
             ports: [3306]
@@ -471,7 +500,7 @@ check the "Symfony Server" section in the web debug toolbar; you'll see that
 
     .. code-block:: yaml
 
-        # docker-compose.yaml
+        # compose.yaml
         services:
             db:
                 ports: [3306]
@@ -485,17 +514,17 @@ its location, same as for ``docker-compose``:
 .. code-block:: bash
 
     # start your containers:
-    COMPOSE_FILE=docker/docker-compose.yaml COMPOSE_PROJECT_NAME=project_name docker-compose up -d
+    COMPOSE_FILE=docker/compose.yaml COMPOSE_PROJECT_NAME=project_name docker-compose up -d
 
     # run any Symfony CLI command:
-    COMPOSE_FILE=docker/docker-compose.yaml COMPOSE_PROJECT_NAME=project_name symfony var:export
+    COMPOSE_FILE=docker/compose.yaml COMPOSE_PROJECT_NAME=project_name symfony var:export
 
 .. note::
 
     If you have more than one Docker Compose file, you can provide them all
     separated by ``:`` as explained in the `Docker compose CLI env var reference`_.
 
-.. caution::
+.. warning::
 
     When using the Symfony binary with ``php bin/console`` (``symfony console ...``),
     the binary will **always** use environment variables detected via Docker and will
@@ -505,7 +534,7 @@ its location, same as for ``docker-compose``:
     ``symfony console doctrine:database:drop --force --env=test``, the command will drop the database
     defined in your Docker configuration and not the "test" one.
 
-.. caution::
+.. warning::
 
     Similar to other web servers, this tool automatically exposes all environment
     variables available in the CLI context. Ensure that this local server is not
@@ -530,5 +559,5 @@ help debug any issues.
 .. _`Proxy settings in Windows`: https://www.dummies.com/computers/operating-systems/windows-10/how-to-set-up-a-proxy-in-windows-10/
 .. _`Proxy settings in macOS`: https://support.apple.com/guide/mac-help/enter-proxy-server-settings-on-mac-mchlp2591/mac
 .. _`Proxy settings in Ubuntu`: https://help.ubuntu.com/stable/ubuntu-help/net-proxy.html.en
-.. _`is treated differently`: https://ec.haxx.se/usingcurl/usingcurl-proxies#http_proxy-in-lower-case-only
+.. _`is treated differently`: https://superuser.com/a/1799209
 .. _`Docker compose CLI env var reference`: https://docs.docker.com/compose/reference/envvars/

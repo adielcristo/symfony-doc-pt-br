@@ -21,9 +21,9 @@ Configuring lazy services is one answer to this. With a lazy service, a
 like the ``mailer``, except that the ``mailer`` isn't actually instantiated
 until you interact with the proxy in some way.
 
-.. caution::
+.. warning::
 
-    Lazy services do not support `final`_ classes, but you can use
+    Lazy services do not support `final`_ or ``readonly`` classes, but you can use
     `Interface Proxifying`_ to work around this limitation.
 
     In PHP versions prior to 8.0 lazy services do not support parameters with
@@ -116,13 +116,39 @@ You can also configure laziness when your service is injected with the
     }
 
 This attribute also allows you to define the interfaces to proxy when using
-laziness, and supports lazy-autowiring of intersection types::
+laziness, and supports lazy-autowiring of union types::
 
     public function __construct(
         #[Autowire(service: 'foo', lazy: FooInterface::class)]
         FooInterface|BarInterface $foo,
     ) {
     }
+
+Another possibility is to use the :class:`Symfony\\Component\\DependencyInjection\\Attribute\\Lazy` attribute::
+
+    namespace App\Twig;
+
+    use Symfony\Component\DependencyInjection\Attribute\Lazy;
+    use Twig\Extension\ExtensionInterface;
+
+    #[Lazy]
+    class AppExtension implements ExtensionInterface
+    {
+        // ...
+    }
+
+This attribute can be applied to both class and parameters that should be lazy-loaded.
+It defines an optional parameter used to define interfaces for proxy and intersection types::
+
+    public function __construct(
+        #[Lazy(FooInterface::class)]
+        FooInterface|BarInterface $foo,
+    ) {
+    }
+
+.. versionadded:: 7.1
+
+    The ``#[Lazy]`` attribute was introduced in Symfony 7.1.
 
 Interface Proxifying
 --------------------

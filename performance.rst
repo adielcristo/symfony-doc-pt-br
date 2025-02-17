@@ -98,7 +98,7 @@ Use the OPcache Byte Code Cache
 OPcache stores the compiled PHP files to avoid having to recompile them for
 every request. There are some `byte code caches`_ available, but as of PHP
 5.5, PHP comes with `OPcache`_ built-in. For older versions, the most widely
-used byte code cache is `APC`_.
+used byte code cache is APC.
 
 .. _performance-use-preloading:
 
@@ -362,6 +362,13 @@ method does, which stops an event and then restarts it immediately::
     // Lap information is stored as "periods" within the event:
     // $event->getPeriods();
 
+    // Gets the last event period:
+    // $event->getLastPeriod();
+
+.. versionadded:: 7.2
+
+    The ``getLastPeriod()`` method was introduced in Symfony 7.2.
+
 Profiling Sections
 ..................
 
@@ -382,9 +389,15 @@ All events that don't belong to any named section are added to the special secti
 called ``__root__``. This way you can get all stopwatch events, even if you don't
 know their names, as follows::
 
-    foreach($this->stopwatch->getSectionEvents('__root__') as $event) {
+    use Symfony\Component\Stopwatch\Stopwatch;
+
+    foreach($this->stopwatch->getSectionEvents(Stopwatch::ROOT) as $event) {
         echo (string) $event;
     }
+
+.. versionadded:: 7.2
+
+    The ``Stopwatch::ROOT`` constant as a shortcut for ``__root__`` was introduced in Symfony 7.2.
 
 Learn more
 ----------
@@ -394,7 +407,6 @@ Learn more
 .. _`byte code caches`: https://en.wikipedia.org/wiki/List_of_PHP_accelerators
 .. _`OPcache`: https://www.php.net/manual/en/book.opcache.php
 .. _`Composer's autoloader optimization`: https://getcomposer.org/doc/articles/autoloader-optimization.md
-.. _`APC`: https://www.php.net/manual/en/book.apc.php
 .. _`APCu Polyfill component`: https://github.com/symfony/polyfill-apcu
 .. _`APCu PHP functions`: https://www.php.net/manual/en/ref.apcu.php
 .. _`cachetool`: https://github.com/gordalina/cachetool

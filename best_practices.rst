@@ -51,6 +51,7 @@ self-explanatory and not coupled to Symfony:
     │  └─ console
     ├─ config/
     │  ├─ packages/
+    │  ├─ routes/
     │  └─ services.yaml
     ├─ migrations/
     ├─ public/
@@ -108,6 +109,10 @@ Define these options as :ref:`parameters <configuration-parameters>` in the
 :ref:`environment <configuration-environments>` in the ``config/services_dev.yaml``
 and ``config/services_prod.yaml`` files.
 
+Unless the application configuration is reused multiple times and needs
+rigid validation, do *not* use the :doc:`Config component </components/config>`
+to define the options.
+
 Use Short and Prefixed Parameter Names
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -154,6 +159,8 @@ values is that it's complicated to redefine their values in your tests.
 
 Business Logic
 --------------
+
+.. _best-practice-no-application-bundles:
 
 Don't Create any Bundle to Organize your Application Logic
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

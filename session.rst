@@ -107,13 +107,15 @@ By default, session attributes are key-value pairs managed with the
 :class:`Symfony\\Component\\HttpFoundation\\Session\\Attribute\\AttributeBag`
 class.
 
-.. tip::
+Sessions are automatically started whenever you read, write or even check for
+the existence of data in the session. This may hurt your application performance
+because all users will receive a session cookie. In order to prevent starting
+sessions for anonymous users, you must *completely* avoid accessing the session.
 
-    Sessions are automatically started whenever you read, write or even check
-    for the existence of data in the session. This may hurt your application
-    performance because all users will receive a session cookie. In order to
-    prevent starting sessions for anonymous users, you must *completely* avoid
-    accessing the session.
+.. note::
+
+    Sessions will also be started when using features that rely on them internally,
+    such as the :ref:`CSRF protection in forms <csrf-protection-forms>`.
 
 .. _flash-messages:
 
@@ -166,19 +168,20 @@ For example, imagine you're processing a :doc:`form </forms>` submission::
 
         // add flash messages
         $flashes->add(
-            'warning',
-            'Your config file is writable, it should be set read-only'
+            'notice',
+            'Your changes were saved'
         );
-        $flashes->add('error', 'Failed to update name');
-        $flashes->add('error', 'Another error');
 
-After processing the request, the controller sets a flash message in the session
-and then redirects. The message key (``notice`` in this example) can be anything:
-you'll use this key to retrieve the message.
+After processing the request, the controller sets a flash message in the
+session and then redirects. The message key (``notice`` in this example)
+can be anything. You'll use this key to retrieve the message.
 
 In the template of the next page (or even better, in your base layout template),
 read any flash messages from the session using the ``flashes()`` method provided
-by the :ref:`Twig global app variable <twig-app-variable>`:
+by the :ref:`Twig global app variable <twig-app-variable>`.
+Alternatively, you can use the
+:method:`Symfony\\Component\\HttpFoundation\\Session\\Flash\\FlashBagInterface::peek`
+method to retrieve the message while keeping it in the bag:
 
 .. configuration-block::
 
@@ -188,6 +191,13 @@ by the :ref:`Twig global app variable <twig-app-variable>`:
 
         {# read and display just one flash message type #}
         {% for message in app.flashes('notice') %}
+            <div class="flash-notice">
+                {{ message }}
+            </div>
+        {% endfor %}
+
+        {# same but without clearing them from the flash bag #}
+        {% for message in app.session.flashbag.peek('notice') %}
             <div class="flash-notice">
                 {{ message }}
             </div>
@@ -211,12 +221,26 @@ by the :ref:`Twig global app variable <twig-app-variable>`:
             {% endfor %}
         {% endfor %}
 
+        {# or without clearing the flash bag #}
+        {% for label, messages in app.session.flashbag.peekAll() %}
+            {% for message in messages %}
+                <div class="flash-{{ label }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endfor %}
+
     .. code-block:: php-standalone
 
         // display warnings
         foreach ($session->getFlashBag()->get('warning', []) as $message) {
             echo '<div class="flash-warning">'.$message.'</div>';
         }
+
+        // display warnings without clearing them from the flash bag
+        foreach ($session->getFlashBag()->peek('warning', []) as $message) {
+            echo '<div class="flash-warning">'.$message.'</div>';
+       }
 
         // display errors
         foreach ($session->getFlashBag()->get('error', []) as $message) {
@@ -230,15 +254,16 @@ by the :ref:`Twig global app variable <twig-app-variable>`:
             }
         }
 
+        // display all flashes at once without clearing the flash bag
+        foreach ($session->getFlashBag()->peekAll() as $type => $messages) {
+            foreach ($messages as $message) {
+                echo '<div class="flash-'.$type.'">'.$message.'</div>';
+            }
+        }
+
 It's common to use ``notice``, ``warning`` and ``error`` as the keys of the
 different types of flash messages, but you can use any key that fits your
 needs.
-
-.. tip::
-
-    You can use the
-    :method:`Symfony\\Component\\HttpFoundation\\Session\\Flash\\FlashBagInterface::peek`
-    method instead to retrieve the message while keeping it in the bag.
 
 Configuration
 -------------
@@ -394,11 +419,16 @@ session metadata files:
 Check out the Symfony config reference to learn more about the other available
 :ref:`Session configuration options <config-framework-session>`.
 
-.. caution::
+.. warning::
 
     Symfony sessions are incompatible with ``php.ini`` directive
     ``session.auto_start = 1`` This directive should be turned off in
     ``php.ini``, in the web server directives or in ``.htaccess``.
+
+.. deprecated:: 7.2
+
+    The ``sid_length`` and ``sid_bits_per_character`` options were deprecated
+    in Symfony 7.2 and will be ignored in Symfony 8.0.
 
 The session cookie is also available in :ref:`the Response object <component-http-foundation-response>`.
 This is useful to get that cookie in the CLI context or when using PHP runners
@@ -462,12 +492,11 @@ the ``php.ini`` directive ``session.gc_maxlifetime``. The meaning in this contex
 that any stored session that was saved more than ``gc_maxlifetime`` ago should be
 deleted. This allows one to expire records based on idle time.
 
-However, some operating systems (e.g. Debian) do their own session handling and set
-the ``session.gc_probability`` variable to ``0`` to stop PHP doing garbage
-collection. That's why Symfony now overwrites this value to ``1``.
-
-If you wish to use the original value set in your ``php.ini``, add the following
-configuration:
+However, some operating systems (e.g. Debian) manage session handling differently
+and set the ``session.gc_probability`` variable to ``0`` to prevent PHP from performing
+garbage collection. By default, Symfony uses the value of the ``gc_probability``
+directive set in the ``php.ini`` file. If you can't modify this PHP setting, you
+can configure it directly in Symfony:
 
 .. code-block:: yaml
 
@@ -475,13 +504,18 @@ configuration:
     framework:
         session:
             # ...
-            gc_probability: null
+            gc_probability: 1
 
-You can configure these settings by passing ``gc_probability``, ``gc_divisor``
-and ``gc_maxlifetime`` in an array to the constructor of
+Alternatively, you can configure these settings by passing ``gc_probability``,
+``gc_divisor`` and ``gc_maxlifetime`` in an array to the constructor of
 :class:`Symfony\\Component\\HttpFoundation\\Session\\Storage\\NativeSessionStorage`
 or to the :method:`Symfony\\Component\\HttpFoundation\\Session\\Storage\\NativeSessionStorage::setOptions`
 method.
+
+.. versionadded:: 7.2
+
+    Using the ``php.ini`` directive as the default value for ``gc_probability``
+    was introduced in Symfony 7.2.
 
 .. _session-database:
 
@@ -533,7 +567,7 @@ a Symfony service for the connection to the Redis server:
 
             Redis:
                 # you can also use \RedisArray, \RedisCluster, \Relay\Relay or \Predis\Client classes
-                class: Redis
+                class: \Redis
                 calls:
                     - connect:
                         - '%env(REDIS_HOST)%'
@@ -1506,7 +1540,7 @@ event::
         }
     }
 
-.. caution::
+.. warning::
 
     In order to update the language immediately after a user has changed their
     language preferences, you also need to update the session when you change

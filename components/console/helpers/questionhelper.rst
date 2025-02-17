@@ -145,6 +145,28 @@ The option which should be selected by default is provided with the third
 argument of the constructor. The default is ``null``, which means that no
 option is the default one.
 
+Choice questions display both the choice value and a numeric index, which starts
+from 0 by default. The user can type either the numeric index or the choice value
+to make a selection:
+
+.. code-block:: terminal
+
+    Please select your favorite color (defaults to red):
+      [0] red
+      [1] blue
+      [2] yellow
+    >
+
+.. tip::
+
+    To use custom indices, pass an array with custom numeric keys as the choice
+    values::
+
+        new ChoiceQuestion('Select a room:', [
+            102 => 'Room Foo',
+            213 => 'Room Bar',
+        ]);
+
 If the user enters an invalid string, an error message is shown and the user
 is asked to provide the answer another time, until they enter a valid string
 or reach the maximum number of attempts. The default value for the maximum number
@@ -329,7 +351,7 @@ convenient for passwords::
         return Command::SUCCESS;
     }
 
-.. caution::
+.. warning::
 
     When you ask for a hidden response, Symfony will use either a binary, change
     ``stty`` mode or use another trick to hide the response. If none is available,
@@ -392,7 +414,7 @@ method::
         return Command::SUCCESS;
     }
 
-.. caution::
+.. warning::
 
     The normalizer is called first and the returned value is used as the input
     of the validator. If the answer is invalid, don't throw exceptions in the
@@ -540,7 +562,7 @@ This way you can test any user interaction (even complex ones) by passing the ap
     simulates a user hitting ``ENTER`` after each input, no need for passing
     an additional input.
 
-.. caution::
+.. warning::
 
     On Windows systems Symfony uses a special binary to implement hidden
     questions. This means that those questions don't use the default ``Input``

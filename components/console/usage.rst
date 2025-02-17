@@ -65,8 +65,16 @@ You can suppress output with:
 
 .. code-block:: terminal
 
+    # suppresses all output, including errors
+    $ php application.php list --silent
+
+    # suppresses all output except errors
     $ php application.php list --quiet
     $ php application.php list -q
+
+.. versionadded:: 7.2
+
+    The ``--silent`` option was introduced in Symfony 7.2.
 
 You can get more verbose messages (if this is supported for a command)
 with:
@@ -104,7 +112,7 @@ If you do not provide a console name then it will just output:
 
 .. code-block:: text
 
-    console tool
+    Console Tool
 
 You can force turning on ANSI output coloring with:
 

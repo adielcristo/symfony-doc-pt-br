@@ -154,7 +154,7 @@ registered and the ``entity_manager_name`` setting for ``acme_hello`` is set to
 Prepending Extension in the Bundle Class
 ----------------------------------------
 
-You can also append or prepend extension configuration directly in your
+You can also prepend extension configuration directly in your
 Bundle class if you extend from the :class:`Symfony\\Component\\HttpKernel\\Bundle\\AbstractBundle`
 class and define the :method:`Symfony\\Component\\HttpKernel\\Bundle\\AbstractBundle::prependExtension`
 method::
@@ -172,12 +172,7 @@ method::
                 'cache' => ['prefix_seed' => 'foo/bar'],
             ]);
 
-            // append
-            $containerConfigurator->extension('framework', [
-                'cache' => ['prefix_seed' => 'foo/bar'],
-            ]);
-
-            // append from file
+            // prepend config from a file
             $containerConfigurator->import('../config/packages/cache.php');
         }
     }
@@ -185,6 +180,12 @@ method::
 .. note::
 
     The ``prependExtension()`` method, like ``prepend()``, is called only at compile time.
+
+.. versionadded:: 7.1
+
+    Starting from Symfony 7.1, calling the :method:`Symfony\\Component\\DependencyInjection\\Loader\\Configurator\\ContainerConfigurator::import`
+    method inside ``prependExtension()`` will prepend the given configuration.
+    In previous Symfony versions, this method appended the configuration.
 
 Alternatively, you can use the ``prepend`` parameter of the
 :method:`Symfony\\Component\\DependencyInjection\\Loader\\Configurator\\ContainerConfigurator::extension`

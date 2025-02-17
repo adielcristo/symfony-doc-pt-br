@@ -34,9 +34,10 @@ Supports `Stimulus/UX`_           yes                                 yes
 Supports Sass/Tailwind            :ref:`yes <asset-mapper-tailwind>`  yes
 Supports React, Vue, Svelte?      yes :ref:`[1] <ux-note-1>`          yes
 Supports TypeScript               :ref:`yes <asset-mapper-ts>`        yes
-Removes comments from JavaScript  no                                  yes
-Removes comments from CSS         no                                  no :ref:`[2] <ux-note-2>`
+Removes comments from JavaScript  no :ref:`[2] <ux-note-2>`           yes
+Removes comments from CSS         no :ref:`[2] <ux-note-2>`           yes :ref:`[4] <ux-note-4>`
 Versioned assets                  always                              optional
+Can update 3rd party packages     yes                                 no :ref:`[3] <ux-note-3>`
 ================================  ==================================  ==========
 
 .. _ux-note-1:
@@ -48,12 +49,26 @@ be executed by a browser.
 
 .. _ux-note-2:
 
-**[2]** There are some `PostCSS`_ plugins available to remove comments from CSS files.
+**[2]** You can install the `SensioLabs Minify Bundle`_ to minify CSS/JS code
+(and remove all comments) when compiling assets with AssetMapper.
+
+.. _ux-note-3:
+
+**[3]** If you use ``npm``, there are update checkers available (e.g. ``npm-check``).
+
+.. _ux-note-4:
+
+**[4]** CSS comments can be removed using `CssMinimizerPlugin`_, which is included
+in Webpack Encore and configurable via ``Encore.configureCssMinimizerPlugin()``.
 
 .. _frontend-asset-mapper:
 
 AssetMapper (Recommended)
 ~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. screencast::
+
+    Do you prefer video tutorials? Check out the `AssetMapper screencast series`_.
 
 AssetMapper is the recommended system for handling your assets. It runs entirely
 in PHP with no complex build step or dependencies. It does this by leveraging
@@ -77,6 +92,26 @@ pre-processing CSS & JS and compiling and minifying assets.
 
 :doc:`Read the Encore Documentation </frontend/encore/index>`
 
+Switch from AssetMapper
+^^^^^^^^^^^^^^^^^^^^^^^
+
+By default, new Symfony webapp projects (created with ``symfony new --webapp myapp``)
+use AssetMapper. If you still need to use Webpack Encore, use the following steps to
+switch. This is best done on a new project and provides the same features (Turbo/Stimulus)
+as the default webapp.
+
+.. code-block:: terminal
+
+    # Remove AssetMapper & Turbo/Stimulus temporarily
+    $ composer remove symfony/ux-turbo symfony/asset-mapper symfony/stimulus-bundle
+
+    # Add Webpack Encore & Turbo/Stimulus back
+    $ composer require symfony/webpack-encore-bundle symfony/ux-turbo symfony/stimulus-bundle
+
+    # Install & Build Assets
+    $ npm install
+    $ npm run dev
+
 Stimulus & Symfony UX Components
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -92,6 +127,10 @@ the `StimulusBundle Documentation`_
 Using a Front-end Framework (React, Vue, Svelte, etc)
 -----------------------------------------------------
 
+.. screencast::
+
+    Do you prefer video tutorials? Check out the `API Platform screencast series`_.
+
 If you want to use a front-end framework (Next.js, React, Vue, Svelte, etc),
 we recommend using their native tools and using Symfony as a pure API. A wonderful
 tool to do that is `API Platform`_. Their standard distribution comes with a
@@ -104,6 +143,7 @@ Other Front-End Articles
 
 * :doc:`/frontend/create_ux_bundle`
 * :doc:`/frontend/custom_version_strategy`
+* :doc:`/frontend/server-data`
 
 .. _`Webpack Encore`: https://www.npmjs.com/package/@symfony/webpack-encore
 .. _`Webpack`: https://webpack.js.org/
@@ -115,4 +155,7 @@ Other Front-End Articles
 .. _`Turbo`: https://turbo.hotwired.dev/
 .. _`Symfony UX`: https://ux.symfony.com
 .. _`API Platform`: https://api-platform.com/
-.. _`PostCSS`: https://postcss.org/
+.. _`SensioLabs Minify Bundle`: https://github.com/sensiolabs/minify-bundle
+.. _`AssetMapper screencast series`: https://symfonycasts.com/screencast/asset-mapper
+.. _`API Platform screencast series`: https://symfonycasts.com/screencast/api-platform
+.. _`CssMinimizerPlugin`: https://webpack.js.org/plugins/css-minimizer-webpack-plugin

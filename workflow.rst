@@ -294,6 +294,41 @@ what actions are allowed on a blog post::
     // See a specific available transition for the post in the current state
     $transition = $workflow->getEnabledTransition($post, 'publish');
 
+Using a multiple state marking store
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you are creating a :doc:`workflow </workflow/workflow-and-state-machine>`,
+your marking store may need to contain multiple places at the same time. That's why,
+if you are using Doctrine, the matching column definition should use the type ``json``::
+
+    // src/Entity/BlogPost.php
+    namespace App\Entity;
+
+    use Doctrine\DBAL\Types\Types;
+    use Doctrine\ORM\Mapping as ORM;
+
+    #[ORM\Entity]
+    class BlogPost
+    {
+        #[ORM\Id]
+        #[ORM\GeneratedValue]
+        #[ORM\Column]
+        private int $id;
+
+        #[ORM\Column(type: Types::JSON)]
+        private array $currentPlaces;
+
+        // ...
+    }
+
+.. warning::
+
+    You should not use the type ``simple_array`` for your marking store. Inside
+    a multiple state marking store, places are stored as keys with a value of one,
+    such as ``['draft' => 1]``. If the marking store contains only one place,
+    this Doctrine type will store its value only as a string, resulting in the
+    loss of the object's current place.
+
 Accessing the Workflow in a Class
 ---------------------------------
 
@@ -365,6 +400,15 @@ name.
     * ``workflow``: all workflows and all state machine;
     * ``workflow.workflow``: all workflows;
     * ``workflow.state_machine``: all state machines.
+
+    Note that workflow metadata are attached to tags under the ``metadata`` key,
+    giving you more context and information about the workflow at disposal.
+    Learn more about :ref:`tag attributes <tags_additional-attributes>` and
+    :ref:`storing workflow metadata <workflow_storing-metadata>`.
+
+    .. versionadded:: 7.1
+
+        The attached configuration to the tag was introduced in Symfony 7.1.
 
 .. tip::
 
@@ -487,6 +531,7 @@ workflow leaves a place::
     use Psr\Log\LoggerInterface;
     use Symfony\Component\EventDispatcher\EventSubscriberInterface;
     use Symfony\Component\Workflow\Event\Event;
+    use Symfony\Component\Workflow\Event\LeaveEvent;
 
     class WorkflowLoggerSubscriber implements EventSubscriberInterface
     {
@@ -509,10 +554,23 @@ workflow leaves a place::
         public static function getSubscribedEvents(): array
         {
             return [
-                'workflow.blog_publishing.leave' => 'onLeave',
+                LeaveEvent::getName('blog_publishing') => 'onLeave',
+                // if you prefer, you can write the event name manually like this:
+                // 'workflow.blog_publishing.leave' => 'onLeave',
             ];
         }
     }
+
+.. tip::
+
+    All built-in workflow events define the ``getName(?string $workflowName, ?string $transitionOrPlaceName)``
+    method to build the full event name without having to deal with strings.
+    You can also use this method in your custom events via the
+    :class:`Symfony\\Component\\Workflow\\Event\\EventNameTrait`.
+
+    .. versionadded:: 7.1
+
+        The ``getName()`` method was introduced in Symfony 7.1.
 
 If some listeners update the context during a transition, you can retrieve
 it via the marking::
@@ -910,12 +968,18 @@ the
 
     final class BlogPostMarkingStore implements MarkingStoreInterface
     {
-        public function getMarking(BlogPost $subject): Marking
+        /**
+         * @param BlogPost $subject
+         */
+        public function getMarking(object $subject): Marking
         {
             return new Marking([$subject->getCurrentPlace() => 1]);
         }
 
-        public function setMarking(BlogPost $subject, Marking $marking): void
+        /**
+         * @param BlogPost $subject
+         */
+        public function setMarking(object $subject, Marking $marking, array $context = []): void
         {
             $marking = key($marking->getPlaces());
             $subject->setCurrentPlace($marking);
@@ -1031,6 +1095,8 @@ The following example shows these functions in action:
     {% for blocker in workflow_transition_blockers(post, 'publish') %}
         <span class="error">{{ blocker.message }}</span>
     {% endfor %}
+
+.. _workflow_storing-metadata:
 
 Storing Metadata
 ----------------

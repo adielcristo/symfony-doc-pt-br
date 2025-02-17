@@ -14,8 +14,6 @@ and can understand a number of different input formats via the `input`_ option.
 +---------------------------+-----------------------------------------------------------------------------+
 | Default invalid message   | Please enter a valid date.                                                  |
 +---------------------------+-----------------------------------------------------------------------------+
-| Legacy invalid message    | The value {{ value }} is not valid.                                         |
-+---------------------------+-----------------------------------------------------------------------------+
 | Parent type               | :doc:`FormType </reference/forms/types/form>`                               |
 +---------------------------+-----------------------------------------------------------------------------+
 | Class                     | :class:`Symfony\\Component\\Form\\Extension\\Core\\Type\\DateType`          |
@@ -103,7 +101,7 @@ This can be tricky: if the date picker is misconfigured, Symfony won't understan
 the format and will throw a validation error. You can also configure the format
 that Symfony should expect via the `format`_ option.
 
-.. caution::
+.. warning::
 
     The string used by a JavaScript date picker to describe its format (e.g. ``yyyy-mm-dd``)
     may not match the string that Symfony uses (e.g. ``yyyy-MM-dd``). This is because
@@ -154,6 +152,20 @@ values for the year, month and day fields::
 .. include:: /reference/forms/types/options/months.rst.inc
 
 .. include:: /reference/forms/types/options/view_timezone.rst.inc
+
+``calendar``
+~~~~~~~~~~~~
+
+**type**: ``integer`` or ``\IntlCalendar`` **default**: ``null``
+
+The calendar to use for formatting and parsing the date. The value should be
+an ``integer`` from :phpclass:`IntlDateFormatter` calendar constants or an instance
+of the :phpclass:`IntlCalendar` to use. By default, the Gregorian calendar
+with the application default locale is used.
+
+.. versionadded:: 7.2
+
+    The ``calendar`` option was introduced in Symfony 7.2.
 
 .. include:: /reference/forms/types/options/date_widget.rst.inc
 

@@ -16,8 +16,6 @@ or an array (see `input`_).
 +---------------------------+----------------------------------------------------------------------------------+
 | Default invalid message   | Please choose a valid date interval.                                             |
 +---------------------------+----------------------------------------------------------------------------------+
-| Legacy invalid message    | The value {{ value }} is not valid.                                              |
-+---------------------------+----------------------------------------------------------------------------------+
 | Parent type               | :doc:`FormType </reference/forms/types/form>`                                    |
 +---------------------------+----------------------------------------------------------------------------------+
 | Class                     | :class:`Symfony\\Component\\Form\\Extension\\Core\\Type\\DateIntervalType`       |
@@ -223,7 +221,7 @@ following:
 Whether or not to include days in the input. This will result in an additional
 input to capture days.
 
-.. caution::
+.. warning::
 
     This can not be used when `with_weeks`_ is enabled.
 
@@ -276,7 +274,7 @@ input to capture seconds.
 Whether or not to include weeks in the input. This will result in an additional
 input to capture weeks.
 
-.. caution::
+.. warning::
 
     This can not be used when `with_days`_ is enabled.
 

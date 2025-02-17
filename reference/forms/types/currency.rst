@@ -13,8 +13,6 @@ manually, but then you should just use the ``ChoiceType`` directly.
 +---------------------------+------------------------------------------------------------------------+
 | Default invalid message   | Please select a valid currency.                                        |
 +---------------------------+------------------------------------------------------------------------+
-| Legacy invalid message    | The value {{ value }} is not valid.                                    |
-+---------------------------+------------------------------------------------------------------------+
 | Parent type               | :doc:`ChoiceType </reference/forms/types/choice>`                      |
 +---------------------------+------------------------------------------------------------------------+
 | Class                     | :class:`Symfony\\Component\\Form\\Extension\\Core\\Type\\CurrencyType` |
@@ -37,7 +35,7 @@ Overridden Options
 
 The choices option defaults to all currencies.
 
-.. caution::
+.. warning::
 
     If you want to override the built-in choices of the currency type, you
     will also have to set the ``choice_loader`` option to ``null``.

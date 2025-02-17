@@ -203,7 +203,22 @@ Routing Messages to a Transport
 Now that you have a transport configured, instead of handling a message immediately,
 you can configure them to be sent to a transport:
 
+.. _messenger-message-attribute:
+
 .. configuration-block::
+
+    .. code-block:: php-attributes
+
+        // src/Message/SmsNotification.php
+        namespace App\Message;
+
+        use Symfony\Component\Messenger\Attribute\AsMessage;
+
+        #[AsMessage('async')]
+        class SmsNotification
+        {
+            // ...
+        }
 
     .. code-block:: yaml
 
@@ -251,15 +266,26 @@ you can configure them to be sent to a transport:
             ;
         };
 
+.. versionadded:: 7.2
+
+    The ``#[AsMessage]`` attribute was introduced in Symfony 7.2.
+
 Thanks to this, the ``App\Message\SmsNotification`` will be sent to the ``async``
 transport and its handler(s) will *not* be called immediately. Any messages not
 matched under ``routing`` will still be handled immediately, i.e. synchronously.
 
 .. note::
 
-    You may use a partial PHP namespace like ``'App\Message\*'`` to match all
-    the messages within the matching namespace. The only requirement is that the
-    ``'*'`` wildcard has to be placed at the end of the namespace.
+    If you configure routing with both YAML/XML/PHP configuration files and
+    PHP attributes, the configuration always takes precedence over the class
+    attribute. This behavior allows you to override routing on a per-environment basis.
+
+.. note::
+
+    When configuring the routing in separate YAML/XML/PHP files, you can use a partial
+    PHP namespace like ``'App\Message\*'`` to match all the messages within the
+    matching namespace. The only requirement is that the ``'*'`` wildcard has to
+    be placed at the end of the namespace.
 
     You may use ``'*'`` as the message class. This will act as a default routing
     rule for any message not matched under ``routing``. This is useful to ensure
@@ -274,6 +300,27 @@ You can also route classes by their parent class or interface. Or send messages
 to multiple transports:
 
 .. configuration-block::
+
+    .. code-block:: php-attributes
+
+        // src/Message/SmsNotification.php
+        namespace App\Message;
+
+        use Symfony\Component\Messenger\Attribute\AsMessage;
+
+        #[AsMessage(['async', 'audit'])]
+        class SmsNotification
+        {
+            // ...
+        }
+
+        // if you prefer, you can also apply multiple attributes to the message class
+        #[AsMessage('async')]
+        #[AsMessage('audit')]
+        class SmsNotification
+        {
+            // ...
+        }
 
     .. code-block:: yaml
 
@@ -496,6 +543,19 @@ command with the ``--all`` option:
 
     The ``--all`` option was introduced in Symfony 7.1.
 
+The ``--keepalive`` option can be used to prevent messages from being prematurely
+redelivered during long-running processing. It marks the message as "in progress"
+and prevents it from being redelivered until the worker finishes processing it.
+
+.. note::
+
+    This option is only available for supported transports, which are
+    the Beanstalkd and AmazonSQS transports.
+
+.. versionadded:: 7.2
+
+    The ``--keepalive`` option was introduced in Symfony 7.2.
+
 .. tip::
 
     In a development environment and if you're using the Symfony CLI tool,
@@ -541,7 +601,7 @@ On production, there are a few important things to think about:
 
 **Use the Same Cache Between Deploys**
     If your deploy strategy involves the creation of new target directories, you
-    should set a value for the :ref:`cache.prefix.seed <reference-cache-prefix-seed>`
+    should set a value for the :ref:`cache.prefix_seed <reference-cache-prefix-seed>`
     configuration option in order to use the same cache namespace between deployments.
     Otherwise, the ``cache.app`` pool will use the value of the ``kernel.project_dir``
     parameter as base for the namespace, which will lead to different namespaces
@@ -688,6 +748,14 @@ of some or all transports:
     # shows stats only for some transports
     $ php bin/console messenger:stats my_transport_name other_transport_name
 
+    # you can also output the stats in JSON format
+    $ php bin/console messenger:stats --format=json
+    $ php bin/console messenger:stats my_transport_name other_transport_name --format=json
+
+.. versionadded:: 7.2
+
+    The ``format`` option was introduced in Symfony 7.2.
+
 .. note::
 
     In order for this command to work, the configured transport's receiver must implement
@@ -728,7 +796,7 @@ times:
 Change the ``async`` argument to use the name of your transport (or transports)
 and ``user`` to the Unix user on your server.
 
-.. caution::
+.. warning::
 
     During a deployment, something might be unavailable (e.g. the
     database) causing the consumer to fail to start. In this situation,
@@ -745,7 +813,7 @@ If you use the Redis Transport, note that each worker needs a unique consumer
 name to avoid the same message being handled by multiple workers. One way to
 achieve this is to set an environment variable in the Supervisor configuration
 file, which you can then refer to in ``messenger.yaml``
-(see the ref:`Redis section <messenger-redis-transport>` below):
+(see the :ref:`Redis section <messenger-redis-transport>` below):
 
 .. code-block:: ini
 
@@ -808,6 +876,8 @@ directory. For example, you can create a new ``messenger-worker.service`` file. 
 
     [Service]
     ExecStart=php /path/to/your/app/bin/console messenger:consume async --time-limit=3600
+    # for Redis, set a custom consumer name for each instance
+    Environment="MESSENGER_CONSUMER_NAME=symfony-%n-%i"
     Restart=always
     RestartSec=30
 
@@ -903,7 +973,7 @@ Rate Limited Transport
 ~~~~~~~~~~~~~~~~~~~~~~
 
 Sometimes you might need to rate limit your message worker. You can configure a
-rate limiter on a transport (requires the :doc:`RateLimiter component </rate-limiter>`)
+rate limiter on a transport (requires the :doc:`RateLimiter component </rate_limiter>`)
 by setting its ``rate_limiter`` option:
 
 .. configuration-block::
@@ -950,7 +1020,7 @@ by setting its ``rate_limiter`` option:
             ;
         };
 
-.. caution::
+.. warning::
 
     When a rate limiter is configured on a transport, it will block the whole
     worker when the limit is hit. You should make sure you configure a dedicated
@@ -1079,6 +1149,15 @@ and must be retried. If you throw
 :class:`Symfony\\Component\\Messenger\\Exception\\RecoverableMessageHandlingException`,
 the message will always be retried infinitely and ``max_retries`` setting will be ignored.
 
+You can define a custom retry delay (e.g., to use the value from the ``Retry-After``
+header in an HTTP response) by setting the ``retryDelay`` argument in the
+constructor of the ``RecoverableMessageHandlingException``.
+
+.. versionadded:: 7.2
+
+    The ``retryDelay`` argument and the ``getRetryDelay()`` method were introduced
+    in Symfony 7.2.
+
 .. _messenger-failure-transport:
 
 Saving & Retrying Failed Messages
@@ -1164,7 +1243,7 @@ to retry them:
     # see details about a specific failure
     $ php bin/console messenger:failed:show 20 -vv
 
-    # view and retry messages one-by-one
+    # for each message, this command asks whether to retry, skip, or delete
     $ php bin/console messenger:failed:retry -vv
 
     # retry specific messages
@@ -1182,6 +1261,11 @@ to retry them:
 If the message fails again, it will be re-sent back to the failure transport
 due to the normal :ref:`retry rules <messenger-retries-failures>`. Once the max
 retry has been hit, the message will be discarded permanently.
+
+.. versionadded:: 7.2
+
+    The option to skip a message in the ``messenger:failed:retry`` command was
+    introduced in Symfony 7.2
 
 Multiple Failed Transports
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1394,65 +1478,115 @@ the exchange, queues binding keys and more. See the documentation on
 
 The transport has a number of options:
 
-============================================  =================================================  ===================================
-     Option                                   Description                                        Default
-============================================  =================================================  ===================================
-``auto_setup``                                Whether the exchanges and queues should be         ``true``
-                                              created automatically during send / get.
-``cacert``                                    Path to the CA cert file in PEM format.
-``cert``                                      Path to the client certificate in PEM format.
-``channel_max``                               Specifies highest channel number that the server
-                                              permits. 0 means standard extension limit
-``confirm_timeout``                           Timeout in seconds for confirmation; if none
-                                              specified, transport will not wait for message
-                                              confirmation. Note: 0 or greater seconds. May be
-                                              fractional.
-``connect_timeout``                           Connection timeout. Note: 0 or greater seconds.
-                                              May be fractional.
-``frame_max``                                 The largest frame size that the server proposes
-                                              for the connection, including frame header and
-                                              end-byte. 0 means standard extension limit
-                                              (depends on librabbimq default frame size limit)
-``heartbeat``                                 The delay, in seconds, of the connection
-                                              heartbeat that the server wants. 0 means the
-                                              server does not want a heartbeat. Note,
-                                              librabbitmq has limited heartbeat support, which
-                                              means heartbeats checked only during blocking
-                                              calls.
-``host``                                      Hostname of the AMQP service
-``key``                                       Path to the client key in PEM format.
-``login``                                     Username to use to connect the AMQP service
-``password``                                  Password to use to connect to the AMQP service
-``persistent``                                                                                   ``'false'``
-``port``                                      Port of the AMQP service
-``read_timeout``                              Timeout in for income activity. Note: 0 or
-                                              greater seconds. May be fractional.
+``auto_setup`` (default: ``true``)
+    Whether the exchanges and queues should be created automatically during
+    send / get.
+
+``cacert``
+    Path to the CA cert file in PEM format.
+
+``cert``
+    Path to the client certificate in PEM format.
+
+``channel_max``
+    Specifies highest channel number that the server permits. 0 means standard
+    extension limit
+
+``confirm_timeout``
+    Timeout in seconds for confirmation; if none specified, transport will not
+    wait for message confirmation. Note: 0 or greater seconds. May be
+    fractional.
+
+``connect_timeout``
+    Connection timeout. Note: 0 or greater seconds. May be fractional.
+
+``frame_max``
+    The largest frame size that the server proposes for the connection,
+    including frame header and end-byte. 0 means standard extension limit
+    (depends on librabbimq default frame size limit)
+
+``heartbeat``
+    The delay, in seconds, of the connection heartbeat that the server wants. 0
+    means the server does not want a heartbeat. Note, librabbitmq has limited
+    heartbeat support, which means heartbeats checked only during blocking
+    calls.
+
+``host``
+    Hostname of the AMQP service
+
+``key``
+    Path to the client key in PEM format.
+
+``login``
+    Username to use to connect the AMQP service
+
+``password``
+    Password to use to connect to the AMQP service
+
+``persistent`` (default: ``'false'``)
+    Whether the connection is persistent
+
+``port``
+    Port of the AMQP service
+
+``read_timeout``
+    Timeout in for income activity. Note: 0 or greater seconds. May be
+    fractional.
+
 ``retry``
+    (no description available)
+
 ``sasl_method``
-``connection_name``                           For custom connection names (requires at least
-                                              version 1.10 of the PHP AMQP extension)
-``verify``                                    Enable or disable peer verification. If peer
-                                              verification is enabled then the common name in
-                                              the server certificate must match the server
-                                              name. Peer verification is enabled by default.
-``vhost``                                     Virtual Host to use with the AMQP service
-``write_timeout``                             Timeout in for outcome activity. Note: 0 or
-                                              greater seconds. May be fractional.
-``delay[queue_name_pattern]``                 Pattern to use to create the queues                ``delay_%exchange_name%_%routing_key%_%delay%``
-``delay[exchange_name]``                      Name of the exchange to be used for the            ``delays``
-                                              delayed/retried messages
-``queues[name][arguments]``                   Extra arguments
-``queues[name][binding_arguments]``           Arguments to be used while binding the queue.
-``queues[name][binding_keys]``                The binding keys (if any) to bind to this queue
-``queues[name][flags]``                       Queue flags                                        ``AMQP_DURABLE``
-``exchange[arguments]``                       Extra arguments for the exchange (e.g.
-                                              ``alternate-exchange``)
-``exchange[default_publish_routing_key]``     Routing key to use when publishing, if none is
-                                              specified on the message
-``exchange[flags]``                           Exchange flags                                     ``AMQP_DURABLE``
-``exchange[name]``                            Name of the exchange
-``exchange[type]``                            Type of exchange                                   ``fanout``
-============================================  =================================================  ===================================
+    (no description available)
+
+``connection_name``
+    For custom connection names (requires at least version 1.10 of the PHP AMQP
+    extension)
+
+``verify``
+    Enable or disable peer verification. If peer verification is enabled then
+    the common name in the server certificate must match the server name. Peer
+    verification is enabled by default.
+
+``vhost``
+    Virtual Host to use with the AMQP service
+
+``write_timeout``
+    Timeout in for outcome activity. Note: 0 or greater seconds. May be
+    fractional.
+
+``delay[queue_name_pattern]`` (default: ``delay_%exchange_name%_%routing_key%_%delay%``)
+    Pattern to use to create the queues
+
+``delay[exchange_name]`` (default: ``delays``)
+    Name of the exchange to be used for the delayed/retried messages
+
+``queues[name][arguments]``
+    Extra arguments
+
+``queues[name][binding_arguments]``
+    Arguments to be used while binding the queue.
+
+``queues[name][binding_keys]``
+    The binding keys (if any) to bind to this queue
+
+``queues[name][flags]`` (default: ``AMQP_DURABLE``)
+    Queue flags
+
+``exchange[arguments]``
+    Extra arguments for the exchange (e.g. ``alternate-exchange``)
+
+``exchange[default_publish_routing_key]``
+    Routing key to use when publishing, if none is specified on the message
+
+``exchange[flags]`` (default: ``AMQP_DURABLE``)
+    Exchange flags
+
+``exchange[name]``
+    Name of the exchange
+
+``exchange[type]`` (default: ``fanout``)
+    Type of exchange
 
 You can also configure AMQP-specific settings on your message by adding
 :class:`Symfony\\Component\\Messenger\\Bridge\\Amqp\\Transport\\AmqpStamp` to
@@ -1466,7 +1600,7 @@ your Envelope::
         new AmqpStamp('custom-routing-key', AMQP_NOPARAM, $attributes),
     ]);
 
-.. caution::
+.. warning::
 
     The consumers do not show up in an admin panel as this transport does not rely on
     ``\AmqpQueue::consume()`` which is blocking. Having a blocking receiver makes
@@ -1517,36 +1651,28 @@ DSN by using the ``table_name`` option:
 Or, to create the table yourself, set the ``auto_setup`` option to ``false`` and
 :ref:`generate a migration <doctrine-creating-the-database-tables-schema>`.
 
-.. caution::
-
-    The datetime property of the messages stored in the database uses the
-    timezone of the current system. This may cause issues if multiple machines
-    with different timezone configuration use the same storage.
-
 The transport has a number of options:
 
-==================  =====================================  ======================
-Option              Description                            Default
-==================  =====================================  ======================
-table_name          Name of the table                      messenger_messages
-queue_name          Name of the queue (a column in the     default
-                    table, to use one table for
-                    multiple transports)
-redeliver_timeout   Timeout before retrying a message      3600
-                    that's in the queue but in the
-                    "handling" state (if a worker stopped
-                    for some reason, this will occur,
-                    eventually you should retry the
-                    message) - in seconds.
-auto_setup          Whether the table should be created
-                    automatically during send / get.       true
-==================  =====================================  ======================
+``table_name`` (default: ``messenger_messages``)
+    Name of the table
 
-.. note::
+``queue_name`` (default: ``default``)
+    Name of the queue (a column in the table, to use one table for multiple
+    transports)
 
-    Set ``redeliver_timeout`` to a greater value than your slowest message
-    duration. Otherwise, some messages will start a second time while the
-    first one is still being handled.
+``redeliver_timeout`` (default: ``3600``)
+    Timeout before retrying a message that's in the queue but in the "handling"
+    state (if a worker stopped for some reason, this will occur, eventually you
+    should retry the message) - in seconds.
+
+    .. note::
+
+        Set ``redeliver_timeout`` to a greater value than your slowest message
+        duration. Otherwise, some messages will start a second time while the
+        first one is still being handled.
+
+``auto_setup``
+    Whether the table should be created automatically during send / get.
 
 When using PostgreSQL, you have access to the following options to leverage
 the `LISTEN/NOTIFY`_ feature. This allow for a more performant approach
@@ -1554,17 +1680,16 @@ than the default polling behavior of the Doctrine transport because
 PostgreSQL will directly notify the workers when a new message is inserted
 in the table.
 
-=======================  ==========================================  ======================
-Option                   Description                                 Default
-=======================  ==========================================  ======================
-use_notify               Whether to use LISTEN/NOTIFY.               true
-check_delayed_interval   The interval to check for delayed           60000
-                         messages, in milliseconds.
-                         Set to 0 to disable checks.
-get_notify_timeout       The length of time to wait for a            0
-                         response when calling
-                         ``PDO::pgsqlGetNotify``, in milliseconds.
-=======================  ==========================================  ======================
+``use_notify`` (default: ``true``)
+    Whether to use LISTEN/NOTIFY.
+
+``check_delayed_interval`` (default: ``60000``)
+    The interval to check for delayed messages, in milliseconds. Set to 0 to
+    disable checks.
+
+``get_notify_timeout`` (default: ``0``)
+    The length of time to wait for a response when calling
+    ``PDO::pgsqlGetNotify``, in milliseconds.
 
 Beanstalkd Transport
 ~~~~~~~~~~~~~~~~~~~~
@@ -1588,20 +1713,20 @@ The Beanstalkd transport DSN may looks like this:
 
 The transport has a number of options:
 
-==================  ===================================  ======================
-     Option         Description                          Default
-==================  ===================================  ======================
-tube_name           Name of the queue                    default
-timeout             Message reservation timeout          0 (will cause the
-                    - in seconds.                        server to immediately
-                                                         return either a
-                                                         response or a
-                                                         TransportException
-                                                         will be thrown)
-ttr                 The message time to run before it
-                    is put back in the ready queue
-                    - in seconds.                        90
-==================  ===================================  ======================
+``tube_name`` (default: ``default``)
+    Name of the queue
+
+``timeout`` (default: ``0``)
+    Message reservation timeout - in seconds. 0 will cause the server to
+    immediately return either a response or a TransportException will be thrown.
+
+``ttr`` (default: ``90``)
+    The message time to run before it is put back in the ready queue - in
+    seconds.
+
+.. versionadded:: 7.2
+
+    Keepalive support, using the ``--keepalive`` option, was added in Symfony 7.2.
 
 .. _messenger-redis-transport:
 
@@ -1636,53 +1761,89 @@ The Redis transport DSN may looks like this:
 A number of options can be configured via the DSN or via the ``options`` key
 under the transport in ``messenger.yaml``:
 
-=======================  =====================================  =================================
-Option                   Description                            Default
-=======================  =====================================  =================================
-stream                   The Redis stream name                  messages
-group                    The Redis consumer group name          symfony
-consumer                 Consumer name used in Redis            consumer
-auto_setup               Create the Redis group automatically?  true
-auth                     The Redis password
-delete_after_ack         If ``true``, messages are deleted      true
-                         automatically after processing them
-delete_after_reject      If ``true``, messages are deleted      true
-                         automatically if they are rejected
-lazy                     Connect only when a connection is      false
-                         really needed
-serializer               How to serialize the final payload     ``Redis::SERIALIZER_PHP``
-                         in Redis (the
-                         ``Redis::OPT_SERIALIZER`` option)
-stream_max_entries       The maximum number of entries which    ``0`` (which means "no trimming")
-                         the stream will be trimmed to. Set
-                         it to a large enough number to
-                         avoid losing pending messages
-redeliver_timeout        Timeout before retrying a pending      ``3600``
-                         message which is owned by an
-                         abandoned consumer (if a worker died
-                         for some reason, this will occur,
-                         eventually you should retry the
-                         message) - in seconds.
-claim_interval           Interval on which pending/abandoned    ``60000`` (1 Minute)
-                         messages should be checked for to
-                         claim - in milliseconds
-persistent_id            String, if null connection is          null
-                         non-persistent.
-retry_interval           Int, value in milliseconds             ``0``
-read_timeout             Float, value in seconds                ``0``
-                         default indicates unlimited
-timeout                  Connection timeout. Float, value in    ``0``
-                         seconds default indicates unlimited
-sentinel_master          String, if null or empty Sentinel      null
-redis_sentinel           support is disabled
-=======================  =====================================  =================================
+``stream`` (default: ``messages``)
+    The Redis stream name
 
-.. versionadded:: 7.1
+``group`` (default: ``symfony``)
+    The Redis consumer group name
 
-    The option `redis_sentinel` as an alias for `sentinel_master` was introduced
-    in Symfony 7.1.
+``consumer`` (default: ``consumer``)
+    Consumer name used in Redis
 
-.. caution::
+``auto_setup`` (default: ``true``)
+    Whether to create the Redis group automatically
+
+``auth``
+    The Redis password
+
+``delete_after_ack`` (default: ``true``)
+    If ``true``, messages are deleted automatically after processing them
+
+``delete_after_reject`` (default: ``true``)
+    If ``true``, messages are deleted automatically if they are rejected
+
+``lazy`` (default: ``false``)
+    Connect only when a connection is really needed
+
+``serializer`` (default: ``Redis::SERIALIZER_PHP``)
+    How to serialize the final payload in Redis (the ``Redis::OPT_SERIALIZER`` option)
+
+``stream_max_entries`` (default: ``0``)
+    The maximum number of entries which the stream will be trimmed to. Set it to
+    a large enough number to avoid losing pending messages
+
+``redeliver_timeout`` (default: ``3600``)
+    Timeout (in seconds) before retrying a pending message which is owned by an abandoned consumer
+    (if a worker died for some reason, this will occur, eventually you should retry the message).
+
+``claim_interval`` (default: ``60000``)
+    Interval on which pending/abandoned messages should be checked for to claim - in milliseconds
+
+``persistent_id`` (default: ``null``)
+    String, if null connection is non-persistent.
+
+``retry_interval`` (default: ``0``)
+    Int, value in milliseconds
+
+``read_timeout`` (default: ``0``)
+    Float, value in seconds default indicates unlimited
+
+``timeout`` (default: ``0``)
+    Connection timeout. Float, value in seconds default indicates unlimited
+
+``sentinel_master`` (default: ``null``)
+    String, if null or empty Sentinel support is disabled
+
+``redis_sentinel`` (default: ``null``)
+    An alias of the ``sentinel_master`` option
+
+    .. versionadded:: 7.1
+
+        The ``redis_sentinel`` option was introduced in Symfony 7.1.
+
+``ssl`` (default: ``null``)
+    Map of `SSL context options`_ for the TLS channel. This is useful for example
+    to change the requirements for the TLS channel in tests:
+
+    .. code-block:: yaml
+
+        # config/packages/test/messenger.yaml
+        framework:
+            messenger:
+                transports:
+                    redis:
+                        dsn: "rediss://localhost"
+                        options:
+                            ssl:
+                                allow_self_signed: true
+                                capture_peer_cert: true
+                                capture_peer_cert_chain: true
+                                disable_compression: true
+                                SNI_enabled: true
+                                verify_peer: true
+                                verify_peer_name: true
+
+.. warning::
 
     There should never be more than one ``messenger:consume`` command running with the same
     combination of ``stream``, ``group`` and ``consumer``, or messages could end up being
@@ -1768,7 +1929,7 @@ during a request::
 
             $this->assertSame(200, $client->getResponse()->getStatusCode());
 
-            /* @var InMemoryTransport $transport */
+            /** @var InMemoryTransport $transport */
             $transport = $this->getContainer()->get('messenger.transport.async_priority_normal');
             $this->assertCount(1, $transport->getSent());
         }
@@ -1818,27 +1979,44 @@ The SQS transport DSN may looks like this:
 
 The transport has a number of options:
 
-======================  ======================================  ===================================
-     Option             Description                             Default
-======================  ======================================  ===================================
-``access_key``          AWS access key                          must be urlencoded
-``account``             Identifier of the AWS account           The owner of the credentials
-``auto_setup``          Whether the queue should be created     ``true``
-                        automatically during send / get.
-``buffer_size``         Number of messages to prefetch          9
-``debug``               If ``true`` it logs all HTTP requests   ``false``
-                        and responses (it impacts performance)
-``endpoint``            Absolute URL to the SQS service         https://sqs.eu-west-1.amazonaws.com
-``poll_timeout``        Wait for new message duration in        0.1
-                        seconds
-``queue_name``          Name of the queue                       messages
-``region``              Name of the AWS region                  eu-west-1
-``secret_key``          AWS secret key                          must be urlencoded
-``session_token``       AWS session token
-``visibility_timeout``  Amount of seconds the message will      Queue's configuration
-                        not be visible (`Visibility Timeout`_)
-``wait_time``           `Long polling`_ duration in seconds     20
-======================  ======================================  ===================================
+``access_key``
+    AWS access key (must be urlencoded)
+
+``account`` (default: The owner of the credentials)
+    Identifier of the AWS account
+
+``auto_setup`` (default: ``true``)
+    Whether the queue should be created automatically during send / get.
+
+``buffer_size`` (default: ``9``)
+    Number of messages to prefetch
+
+``debug`` (default: ``false``)
+    If ``true`` it logs all HTTP requests and responses (it impacts performance)
+
+``endpoint`` (default: ``https://sqs.eu-west-1.amazonaws.com``)
+    Absolute URL to the SQS service
+
+``poll_timeout`` (default: ``0.1``)
+    Wait for new message duration in seconds
+
+``queue_name`` (default: ``messages``)
+    Name of the queue
+
+``region`` (default: ``eu-west-1``)
+    Name of the AWS region
+
+``secret_key``
+    AWS secret key (must be urlencoded)
+
+``session_token``
+    AWS session token
+
+``visibility_timeout`` (default: Queue's configuration)
+    Amount of seconds the message will not be visible (`Visibility Timeout`_)
+
+``wait_time`` (default: ``20``)
+    `Long polling`_ duration in seconds
 
 .. note::
 
@@ -1871,6 +2049,10 @@ The transport has a number of options:
 
     FIFO queues don't support setting a delay per message, a value of ``delay: 0``
     is required in the retry strategy settings.
+
+.. versionadded:: 7.2
+
+    Keepalive support, using the `--keepalive` option, was added in Symfony 7.2.
 
 Serializing Messages
 ~~~~~~~~~~~~~~~~~~~~
@@ -2171,40 +2353,6 @@ wherever you need a query bus behavior instead of the ``MessageBusInterface``::
 Customizing Handlers
 --------------------
 
-Configuring Handlers Using Attributes
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-You can configure your handler by passing options to the attribute::
-
-    // src/MessageHandler/SmsNotificationHandler.php
-    namespace App\MessageHandler;
-
-    use App\Message\OtherSmsNotification;
-    use App\Message\SmsNotification;
-    use Symfony\Component\Messenger\Attribute\AsMessageHandler;
-
-    #[AsMessageHandler(fromTransport: 'async', priority: 10)]
-    class SmsNotificationHandler
-    {
-        public function __invoke(SmsNotification $message): void
-        {
-            // ...
-        }
-    }
-
-Possible options to configure with the attribute are:
-
-==============================  ====================================================================================================
-Option                          Description
-==============================  ====================================================================================================
-``bus``                         Name of the bus from which the handler can receive messages, by default all buses.
-``fromTransport``               Name of the transport from which the handler can receive messages, by default all transports.
-``handles``                     Type of messages (FQCN) that can be processed by the handler, only needed if can't be guessed by
-                                type-hint.
-``method``                      Name of the method that will process the message, only if the target is a class.
-``priority``                    Priority of the handler when multiple handlers can process the same message.
-==============================  ====================================================================================================
-
 .. _messenger-handler-config:
 
 Manually Configuring Handlers
@@ -2212,9 +2360,28 @@ Manually Configuring Handlers
 
 Symfony will normally :ref:`find and register your handler automatically <messenger-handler>`.
 But, you can also configure a handler manually - and pass it some extra config -
-by tagging the handler service with ``messenger.message_handler``
+while using ``#AsMessageHandler`` attribute or tagging the handler service
+with ``messenger.message_handler``.
 
 .. configuration-block::
+
+    .. code-block:: php-attributes
+
+        // src/MessageHandler/SmsNotificationHandler.php
+        namespace App\MessageHandler;
+
+        use App\Message\OtherSmsNotification;
+        use App\Message\SmsNotification;
+        use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+
+        #[AsMessageHandler(fromTransport: 'async', priority: 10)]
+        class SmsNotificationHandler
+        {
+            public function __invoke(SmsNotification $message): void
+            {
+                // ...
+            }
+        }
 
     .. code-block:: yaml
 
@@ -2262,16 +2429,22 @@ by tagging the handler service with ``messenger.message_handler``
 
 Possible options to configure with tags are:
 
-============================  ====================================================================================================
-Option                        Description
-============================  ====================================================================================================
-``bus``                       Name of the bus from which the handler can receive messages, by default all buses.
-``from_transport``            Name of the transport from which the handler can receive messages, by default all transports.
-``handles``                   Type of messages (FQCN) that can be processed by the handler, only needed if can't be guessed by
-                              type-hint.
-``method``                    Name of the method that will process the message.
-``priority``                  Priority of the handler when multiple handlers can process the same message.
-============================  ====================================================================================================
+``bus``
+    Name of the bus from which the handler can receive messages, by default all buses.
+
+``from_transport``
+    Name of the transport from which the handler can receive messages, by default
+    all transports.
+
+``handles``
+    Type of messages (FQCN) that can be processed by the handler, only needed if
+    can't be guessed by type-hint.
+
+``method``
+    Name of the method that will process the message.
+
+``priority``
+    Priority of the handler when multiple handlers can process the same message.
 
 .. _handler-subscriber-options:
 
@@ -2540,7 +2713,7 @@ That's it! You can now consume each transport:
 
     $ php bin/console messenger:consume async_priority_normal -vv
 
-.. caution::
+.. warning::
 
     If a handler does *not* have ``from_transport`` config, it will be executed
     on *every* transport that the message is received from.
@@ -2564,7 +2737,7 @@ provided in order to ease the declaration of these special handlers::
     {
         use BatchHandlerTrait;
 
-        public function __invoke(MyMessage $message, Acknowledger $ack = null): mixed
+        public function __invoke(MyMessage $message, ?Acknowledger $ack = null): mixed
         {
             return $this->handle($message, $ack);
         }
@@ -2583,15 +2756,8 @@ provided in order to ease the declaration of these special handlers::
             }
         }
 
-        // Optionally, you can either redefine the `shouldFlush()` method
-        // of the trait to define your own batch size...
-        private function shouldFlush(): bool
-        {
-            return 100 <= \count($this->jobs);
-        }
-
-        // ... or redefine the `getBatchSize()` method if the default
-        // flush behavior suits your needs
+        // Optionally, you can override some of the trait methods, such as the
+        // `getBatchSize()` method, to specify your own batch size...
         private function getBatchSize(): int
         {
             return 100;
@@ -2628,8 +2794,8 @@ to your message::
 
     public function index(MessageBusInterface $bus): void
     {
+        // wait 5 seconds before processing
         $bus->dispatch(new SmsNotification('...'), [
-            // wait 5 seconds before processing
             new DelayStamp(5000),
         ]);
 
@@ -2755,6 +2921,11 @@ and a different instance will be created per bus.
             $bus->middleware()->id('App\Middleware\MyMiddleware');
             $bus->middleware()->id('App\Middleware\AnotherMiddleware');
         };
+
+.. tip::
+
+    If you have installed the MakerBundle, you can use the ``make:messenger-middleware``
+    command to bootstrap the creation of your own messenger middleware.
 
 .. _middleware-doctrine:
 
@@ -2991,12 +3162,10 @@ Let's say you want to create a message decoder::
     {
         public function decode(array $encodedEnvelope): Envelope
         {
-            $envelope = \json_decode($encodedEnvelope, true);
-
             try {
                 // parse the data you received with your custom fields
-                $data = $envelope['data'];
-                $data['token'] = $envelope['token'];
+                $data = $encodedEnvelope['data'];
+                $data['token'] = $encodedEnvelope['token'];
 
                 // other operations like getting information from stamps
             } catch (\Throwable $throwable) {
@@ -3348,7 +3517,7 @@ You can also restrict the list to a specific bus by providing its name as an arg
 Redispatching a Message
 -----------------------
 
-It you want to redispatch a message (using the same transport and envelope), create
+If you want to redispatch a message (using the same transport and envelope), create
 a new :class:`Symfony\\Component\\Messenger\\Message\\RedispatchMessage` and dispatch
 it through your bus. Reusing the same ``SmsNotification`` example shown earlier::
 
@@ -3396,7 +3565,7 @@ Learn more
 .. _`streams`: https://redis.io/topics/streams-intro
 .. _`Supervisor docs`: http://supervisord.org/
 .. _`PCNTL`: https://www.php.net/manual/book.pcntl.php
-.. _`systemd docs`: https://www.freedesktop.org/wiki/Software/systemd/
+.. _`systemd docs`: https://systemd.io/
 .. _`SymfonyCasts' message serializer tutorial`: https://symfonycasts.com/screencast/messenger/transport-serializer
 .. _`Long polling`: https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-short-and-long-polling.html
 .. _`Visibility Timeout`: https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-visibility-timeout.html
@@ -3405,3 +3574,4 @@ Learn more
 .. _`AMQProxy`: https://github.com/cloudamqp/amqproxy
 .. _`high connection churn`: https://www.rabbitmq.com/connections.html#high-connection-churn
 .. _`article about CQRS`: https://martinfowler.com/bliki/CQRS.html
+.. _`SSL context options`: https://php.net/context.ssl

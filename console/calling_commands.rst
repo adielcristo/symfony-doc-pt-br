@@ -1,9 +1,9 @@
 How to Call Other Commands
 ==========================
 
-If a command depends on another one being run before it you can call in the
-console command itself. This is useful if a command depends on another command
-or if you want to create a "meta" command that runs a bunch of other commands
+If a command depends on another one being run before it you can call that in the
+console command itself. This can be useful
+if you want to create a "meta" command that runs a bunch of other commands
 (for instance, all commands that need to be run when the project's code has
 changed on the production servers: clearing the cache, generating Doctrine
 proxies, dumping web assets, ...).
@@ -36,6 +36,9 @@ method)::
                 '--yell'  => true,
             ]);
 
+            // disable interactive behavior for the greet command
+            $greetInput->setInteractive(false);
+
             $returnCode = $this->getApplication()->doRun($greetInput, $output);
 
             // ...
@@ -57,7 +60,7 @@ method)::
     ``$this->getApplication()->find('demo:greet')->run()`` will allow proper
     events to be dispatched for that inner command as well.
 
-.. caution::
+.. warning::
 
     Note that all the commands will run in the same process and some of Symfony's
     built-in commands may not work well this way. For instance, the ``cache:clear``

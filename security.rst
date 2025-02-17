@@ -194,17 +194,6 @@ from the `MakerBundle`_:
         }
 
         /**
-         * Returning a salt is only needed if you are not using a modern
-         * hashing algorithm (e.g. bcrypt or sodium) in your security.yaml.
-         *
-         * @see UserInterface
-         */
-        public function getSalt(): ?string
-        {
-            return null;
-        }
-
-        /**
          * @see UserInterface
          */
         public function eraseCredentials(): void
@@ -214,6 +203,13 @@ from the `MakerBundle`_:
         }
     }
 
+.. tip::
+
+    Starting in `MakerBundle`_: v1.57.0 - You can pass either ``--with-uuid`` or
+    ``--with-ulid`` to ``make:user``. Leveraging Symfony's :doc:`Uid Component </components/uid>`,
+    this generates a ``User`` entity with the ``id`` type as :ref:`Uuid <uuid>`
+    or :ref:`Ulid <ulid>` instead of ``int``.
+
 If your user is a Doctrine entity, like in the example above, don't forget
 to create the tables by :ref:`creating and running a migration <doctrine-creating-the-database-tables-schema>`:
 
@@ -221,6 +217,11 @@ to create the tables by :ref:`creating and running a migration <doctrine-creatin
 
     $ php bin/console make:migration
     $ php bin/console doctrine:migrations:migrate
+
+.. tip::
+
+    Starting in `MakerBundle`_: v1.56.0 - Passing ``--formatted`` to ``make:migration``
+    generates a nice and tidy migration file.
 
 .. _where-do-users-come-from-user-providers:
 .. _security-user-providers:
@@ -448,6 +449,8 @@ the database::
     Doctrine repository class related to the user class must implement the
     :class:`Symfony\\Component\\Security\\Core\\User\\PasswordUpgraderInterface`.
 
+.. _security-make-registration-form:
+
 .. tip::
 
     The ``make:registration-form`` maker command can help you set-up the
@@ -487,9 +490,12 @@ will be able to authenticate (e.g. login form, API token, etc).
         security:
             # ...
             firewalls:
+                # the order in which firewalls are defined is very important, as the
+                # request will be handled by the first firewall whose pattern matches
                 dev:
                     pattern: ^/(_(profiler|wdt)|css|images|js)/
                     security: false
+                # a firewall with no pattern should be defined last because it will match all requests
                 main:
                     lazy: true
                     # provider that you set earlier inside providers
@@ -515,10 +521,14 @@ will be able to authenticate (e.g. login form, API token, etc).
 
             <config>
                 <!-- ... -->
+
+                <!-- the order in which firewalls are defined is very important, as the
+                     request will be handled by the first firewall whose pattern matches -->
                 <firewall name="dev"
                     pattern="^/(_(profiler|wdt)|css|images|js)/"
                     security="false"/>
 
+                <!-- a firewall with no pattern should be defined last because it will match all requests -->
                 <firewall name="main"
                     lazy="true"/>
 
@@ -537,11 +547,15 @@ will be able to authenticate (e.g. login form, API token, etc).
 
         return static function (SecurityConfig $security): void {
             // ...
+
+            // the order in which firewalls are defined is very important, as the
+            // request will be handled by the first firewall whose pattern matches
             $security->firewall('dev')
                 ->pattern('^/(_(profiler|wdt)|css|images|js)/')
                 ->security(false)
             ;
 
+            // a firewall with no pattern should be defined last because it will match all requests
             $security->firewall('main')
                 ->lazy(true)
 
@@ -698,7 +712,7 @@ many other authenticators:
 
     If your application logs users in via a third-party service such as
     Google, Facebook or Twitter (social login), check out the `HWIOAuthBundle`_
-    community bundle.
+    community bundle or `Oauth2-client`_ package.
 
 .. _security-form-login:
 
@@ -736,7 +750,7 @@ First, create a controller for the login form:
 
     use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
     use Symfony\Component\HttpFoundation\Response;
-    use Symfony\Component\Routing\Annotation\Route;
+    use Symfony\Component\Routing\Attribute\Route;
 
     class LoginController extends AbstractController
     {
@@ -864,10 +878,10 @@ Finally, create or update the template:
 
         <form action="{{ path('app_login') }}" method="post">
             <label for="username">Email:</label>
-            <input type="text" id="username" name="_username" value="{{ last_username }}">
+            <input type="text" id="username" name="_username" value="{{ last_username }}" required>
 
             <label for="password">Password:</label>
-            <input type="password" id="password" name="_password">
+            <input type="password" id="password" name="_password" required>
 
             {# If you want to control the URL the user is redirected to on success
             <input type="hidden" name="_target_path" value="/account"> #}
@@ -876,7 +890,7 @@ Finally, create or update the template:
         </form>
     {% endblock %}
 
-.. caution::
+.. warning::
 
     The ``error`` variable passed into the template is an instance
     of :class:`Symfony\\Component\\Security\\Core\\Exception\\AuthenticationException`.
@@ -1002,7 +1016,7 @@ be ``authenticate``:
     <form action="{{ path('app_login') }}" method="post">
         {# ... the login fields #}
 
-        <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+        <input type="hidden" name="_csrf_token" data-controller="csrf-protection" value="{{ csrf_token('authenticate') }}">
 
         <button type="submit">login</button>
     </form>
@@ -1098,7 +1112,7 @@ create a controller for this path:
 
     use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
     use Symfony\Component\HttpFoundation\Response;
-    use Symfony\Component\Routing\Annotation\Route;
+    use Symfony\Component\Routing\Attribute\Route;
 
     class ApiLoginController extends AbstractController
     {
@@ -1730,7 +1744,7 @@ You can log in a user programmatically using the ``login()`` method of the
 :class:`Symfony\\Bundle\\SecurityBundle\\Security` helper::
 
     // src/Controller/SecurityController.php
-    namespace App\Controller\SecurityController;
+    namespace App\Controller;
 
     use App\Security\Authenticator\ExampleAuthenticator;
     use Symfony\Bundle\SecurityBundle\Security;
@@ -1755,8 +1769,11 @@ You can log in a user programmatically using the ``login()`` method of the
             // you can also log in on a different firewall...
             $security->login($user, 'form_login', 'other_firewall');
 
-            // ...and add badges
+            // ... add badges...
             $security->login($user, 'form_login', 'other_firewall', [(new RememberMeBadge())->enable()]);
+
+            // ... and also add passport attributes
+            $security->login($user, 'form_login', 'other_firewall', [(new RememberMeBadge())->enable()], ['referer' => 'https://oauth.example.com']);
 
             // use the redirection logic applied to regular login
             $redirectResponse = $security->login($user);
@@ -1766,6 +1783,12 @@ You can log in a user programmatically using the ``login()`` method of the
             // return new RedirectResponse('...');
         }
     }
+
+.. versionadded:: 7.2
+
+    The support for passport attributes in the
+    :method:`Symfony\\Bundle\\SecurityBundle\\Security::login` method was
+    introduced in Symfony 7.2.
 
 .. _security-logging-out:
 
@@ -2231,7 +2254,7 @@ Users with ``ROLE_SUPER_ADMIN``, will automatically have ``ROLE_ADMIN``,
 ``ROLE_ALLOWED_TO_SWITCH`` and ``ROLE_USER`` (inherited from
 ``ROLE_ADMIN``).
 
-.. caution::
+.. warning::
 
     For role hierarchy to work, do not use ``$user->getRoles()`` manually.
     For example, in a controller extending from the :ref:`base controller <the-base-controller-class-services>`::
@@ -2458,7 +2481,7 @@ will happen:
 .. _security-securing-controller-annotations:
 .. _security-securing-controller-attributes:
 
-Another way to secure one or more controller actions is to use the ``#[IsGranted()]`` attribute.
+Another way to secure one or more controller actions is to use the ``#[IsGranted]`` attribute.
 In the following example, all controller actions will require the
 ``ROLE_ADMIN`` permission, except for ``adminDashboard()``, which will require
 the ``ROLE_SUPER_ADMIN`` permission:
@@ -2544,7 +2567,7 @@ want to include extra details only for users that have a ``ROLE_SALES_ADMIN`` ro
       class SalesReportManager
       {
     +     public function __construct(
-    +         Security $security,
+    +         private Security $security,
     +     ) {
     +     }
 
@@ -2695,7 +2718,7 @@ you have the following two options.
 
 Firstly, if you've given *every* user ``ROLE_USER``, you can check for that role.
 
-Secondly, you can use the special "attribute" ``IS_AUTHENTICATED_FULLY`` in place of a role::
+Secondly, you can use the special "attribute" ``IS_AUTHENTICATED`` in place of a role::
 
     // ...
 
@@ -2758,6 +2781,8 @@ Or, if you need more control over the "compare users" process, make your User cl
 implement :class:`Symfony\\Component\\Security\\Core\\User\\EquatableInterface`.
 Then, your ``isEqualTo()`` method will be called when comparing users instead
 of the core logic.
+
+.. _security-security-events:
 
 Security Events
 ---------------
@@ -2949,3 +2974,4 @@ Authorization (Denying Access)
 .. _`HTTP Basic authentication`: https://en.wikipedia.org/wiki/Basic_access_authentication
 .. _`Login CSRF attacks`: https://en.wikipedia.org/wiki/Cross-site_request_forgery#Forging_login_requests
 .. _`PHP date relative formats`: https://www.php.net/manual/en/datetime.formats.php#datetime.formats.relative
+.. _`Oauth2-client`: https://github.com/thephpleague/oauth2-client

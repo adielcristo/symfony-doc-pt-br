@@ -207,11 +207,19 @@ automatically changed to ``'.inner'``):
                 ->args([service('.inner')]);
         };
 
-.. tip::
+.. note::
 
     The visibility of the decorated ``App\Mailer`` service (which is an alias
     for the new service) will still be the same as the original ``App\Mailer``
     visibility.
+
+.. note::
+
+    All custom :doc:`service tags </service_container/tags>` from the decorated
+    service are removed in the new service. Only certain built-in service tags
+    defined by Symfony are retained: ``container.service_locator``, ``container.service_subscriber``,
+    ``kernel.event_subscriber``, ``kernel.event_listener``, ``kernel.locale_aware``,
+    and ``kernel.reset``.
 
 .. note::
 
@@ -281,34 +289,34 @@ the ``decoration_priority`` option. Its value is an integer that defaults to
 
 .. configuration-block::
 
-        .. code-block:: php-attributes
+    .. code-block:: php-attributes
+
+        // ...
+        use Symfony\Component\DependencyInjection\Attribute\AsDecorator;
+        use Symfony\Component\DependencyInjection\Attribute\AutowireDecorated;
+
+        #[AsDecorator(decorates: Foo::class, priority: 5)]
+        class Bar
+        {
+            public function __construct(
+                #[AutowireDecorated]
+                private $inner,
+            ) {
+            }
+            // ...
+        }
+
+        #[AsDecorator(decorates: Foo::class, priority: 1)]
+        class Baz
+        {
+            public function __construct(
+                #[AutowireDecorated]
+                private $inner,
+            ) {
+            }
 
             // ...
-            use Symfony\Component\DependencyInjection\Attribute\AsDecorator;
-            use Symfony\Component\DependencyInjection\Attribute\AutowireDecorated;
-
-            #[AsDecorator(decorates: Foo::class, priority: 5)]
-            class Bar
-            {
-                public function __construct(
-                    #[AutowireDecorated]
-                    private $inner,
-                ) {
-                }
-                // ...
-            }
-
-            #[AsDecorator(decorates: Foo::class, priority: 1)]
-            class Baz
-            {
-                public function __construct(
-                    #[AutowireDecorated]
-                    private $inner,
-                ) {
-                }
-
-                // ...
-            }
+        }
 
     .. code-block:: yaml
 
@@ -601,23 +609,23 @@ Three different behaviors are available:
 
 .. configuration-block::
 
-        .. code-block:: php-attributes
+    .. code-block:: php-attributes
+
+        // ...
+        use Symfony\Component\DependencyInjection\Attribute\AsDecorator;
+        use Symfony\Component\DependencyInjection\Attribute\AutowireDecorated;
+        use Symfony\Component\DependencyInjection\ContainerInterface;
+
+        #[AsDecorator(decorates: Mailer::class, onInvalid: ContainerInterface::IGNORE_ON_INVALID_REFERENCE)]
+        class Bar
+        {
+            public function __construct(
+                #[AutowireDecorated] private $inner,
+            ) {
+            }
 
             // ...
-            use Symfony\Component\DependencyInjection\Attribute\AsDecorator;
-            use Symfony\Component\DependencyInjection\Attribute\AutowireDecorated;
-            use Symfony\Component\DependencyInjection\ContainerInterface;
-
-            #[AsDecorator(decorates: Mailer::class, onInvalid: ContainerInterface::IGNORE_ON_INVALID_REFERENCE)]
-            class Bar
-            {
-                public function __construct(
-                    private #[AutowireDecorated] $inner,
-                ) {
-                }
-
-                // ...
-            }
+        }
 
     .. code-block:: yaml
 
@@ -665,7 +673,7 @@ Three different behaviors are available:
             ;
         };
 
-.. caution::
+.. warning::
 
     When using ``null``, you may have to update the decorator constructor in
     order to make decorated dependency nullable::

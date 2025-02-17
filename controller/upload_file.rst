@@ -120,17 +120,22 @@ Finally, you need to update the code of the controller that handles the form::
     use App\Entity\Product;
     use App\Form\ProductType;
     use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+    use Symfony\Component\DependencyInjection\Attribute\Autowire;
     use Symfony\Component\HttpFoundation\File\Exception\FileException;
     use Symfony\Component\HttpFoundation\File\UploadedFile;
     use Symfony\Component\HttpFoundation\Request;
     use Symfony\Component\HttpFoundation\Response;
-    use Symfony\Component\Routing\Annotation\Route;
+    use Symfony\Component\Routing\Attribute\Route;
     use Symfony\Component\String\Slugger\SluggerInterface;
 
     class ProductController extends AbstractController
     {
         #[Route('/product/new', name: 'app_product_new')]
-        public function new(Request $request, SluggerInterface $slugger): Response
+        public function new(
+            Request $request,
+            SluggerInterface $slugger,
+            #[Autowire('%kernel.project_dir%/public/uploads/brochures')] string $brochuresDirectory
+        ): Response
         {
             $product = new Product();
             $form = $this->createForm(ProductType::class, $product);
@@ -150,10 +155,7 @@ Finally, you need to update the code of the controller that handles the form::
 
                     // Move the file to the directory where brochures are stored
                     try {
-                        $brochureFile->move(
-                            $this->getParameter('brochures_directory'),
-                            $newFilename
-                        );
+                        $brochureFile->move($brochuresDirectory, $newFilename);
                     } catch (FileException $e) {
                         // ... handle exception if something happens during file upload
                     }
@@ -173,17 +175,6 @@ Finally, you need to update the code of the controller that handles the form::
             ]);
         }
     }
-
-Now, create the ``brochures_directory`` parameter that was used in the
-controller to specify the directory in which the brochures should be stored:
-
-.. code-block:: yaml
-
-    # config/services.yaml
-
-    # ...
-    parameters:
-        brochures_directory: '%kernel.project_dir%/public/uploads/brochures'
 
 There are some important things to consider in the code of the above controller:
 
@@ -230,7 +221,7 @@ You can use the following code to link to the PDF brochure of a product:
         // ...
 
         $product->setBrochureFilename(
-            new File($this->getParameter('brochures_directory').'/'.$product->getBrochureFilename())
+            new File($brochuresDirectory.DIRECTORY_SEPARATOR.$product->getBrochureFilename())
         );
 
 Creating an Uploader Service

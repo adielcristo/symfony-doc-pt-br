@@ -117,7 +117,9 @@ resources::
     // src/Kernel.php
     namespace Shared;
 
+    use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
     use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
+    use Symfony\Component\HttpKernel\Kernel as BaseKernel;
     use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
 
     class Kernel extends BaseKernel
@@ -227,7 +229,7 @@ but it should typically be added to your web server configuration.
     # .env
     APP_ID=api
 
-.. caution::
+.. warning::
 
     The value of this variable must match the application directory within
     ``apps/`` as it is used in the Kernel to load the specific application
@@ -258,6 +260,7 @@ the application ID to run under CLI context::
 
     // bin/console
     use Shared\Kernel;
+    use Symfony\Bundle\FrameworkBundle\Console\Application;
     use Symfony\Component\Console\Input\InputInterface;
     use Symfony\Component\Console\Input\InputOption;
 

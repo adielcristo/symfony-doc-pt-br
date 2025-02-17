@@ -97,7 +97,8 @@ You can run tests using the ``bin/phpunit`` command:
 .. tip::
 
     In large test suites, it can make sense to create subdirectories for
-    each type of tests (e.g. ``tests/Unit/`` and ``tests/Functional/``).
+    each type of test (``tests/Unit/``, ``tests/Integration/``,
+    ``tests/Application/``, etc.).
 
 .. _integration-tests:
 
@@ -225,7 +226,7 @@ need in your ``.env.test`` file:
     # .env.test
 
     # ...
-    DATABASE_URL="mysql://db_user:db_password@127.0.0.1:3306/db_name_test?serverVersion=5.7"
+    DATABASE_URL="mysql://db_user:db_password@127.0.0.1:3306/db_name_test?serverVersion=8.0.37"
 
 In the test environment, these env files are read (if vars are duplicated
 in them, files lower in the list override previous items):
@@ -234,7 +235,7 @@ in them, files lower in the list override previous items):
 #. ``.env.test``: overriding/setting specific test values or vars;
 #. ``.env.test.local``: overriding settings specific for this machine.
 
-.. caution::
+.. warning::
 
     The ``.env.local`` file is **not** used in the test environment, to
     make each test set-up as consistent as possible.
@@ -317,7 +318,7 @@ concrete one::
         }
     }
 
-No further configuration in required, as the test service container is a special one
+No further configuration is required, as the test service container is a special one
 that allows you to interact with private services and aliases.
 
 .. _testing-databases:
@@ -336,7 +337,7 @@ env var:
 .. code-block:: env
 
     # .env.test.local
-    DATABASE_URL="mysql://USERNAME:PASSWORD@127.0.0.1:3306/DB_NAME?serverVersion=5.7"
+    DATABASE_URL="mysql://USERNAME:PASSWORD@127.0.0.1:3306/DB_NAME?serverVersion=8.0.37"
 
 This assumes that each developer/machine uses a different database for the
 tests. If the test set-up is the same on each machine, use the ``.env.test``
@@ -555,13 +556,13 @@ returns a ``Crawler`` instance.
 
 The full signature of the ``request()`` method is::
 
-    request(
+    public function request(
         string $method,
         string $uri,
         array $parameters = [],
         array $files = [],
         array $server = [],
-        string $content = null,
+        ?string $content = null,
         bool $changeHistory = true
     ): Crawler
 
@@ -605,7 +606,7 @@ to remove the ``kernel.reset`` tag from some services in your test environment::
 
         // ...
 
-        protected function process(ContainerBuilder $container): void
+        public function process(ContainerBuilder $container): void
         {
             if ('test' === $this->environment) {
                 // prevents the security token to be cleared
@@ -711,6 +712,10 @@ stores in the session of the test client. If you need to define custom
 attributes in this token, you can use the ``tokenAttributes`` argument of the
 :method:`Symfony\\Bundle\\FrameworkBundle\\KernelBrowser::loginUser` method.
 
+To set a specific firewall (``main`` is set by default)::
+
+    $client->loginUser($testUser, 'my_firewall');
+
 .. note::
 
     By design, the ``loginUser()`` method doesn't work when using stateless firewalls.
@@ -745,7 +750,7 @@ You can also override HTTP headers on a per request basis::
         'HTTP_USER_AGENT' => 'MySuperBrowser/1.0',
     ]);
 
-.. caution::
+.. warning::
 
     The name of your custom headers must follow the syntax defined in the
     `section 4.1.18 of RFC 3875`_: replace ``-`` by ``_``, transform it into
@@ -869,7 +874,7 @@ The second optional argument is used to override the default form field values.
 
 If you need access to the :class:`Symfony\\Component\\DomCrawler\\Form` object
 that provides helpful methods specific to forms (such as ``getUri()``,
-``getValues()`` and ``getFields()``) use the ``Crawler::selectButton()`` method instead::
+``getValues()`` and ``getFiles()``) use the ``Crawler::selectButton()`` method instead::
 
     $client = static::createClient();
     $crawler = $client->request('GET', '/post/hello-world');
@@ -956,11 +961,11 @@ However, Symfony provides useful shortcut methods for the most common cases:
 Response Assertions
 ...................
 
-``assertResponseIsSuccessful(string $message = '')``
+``assertResponseIsSuccessful(string $message = '', bool $verbose = true)``
     Asserts that the response was successful (HTTP status is 2xx).
-``assertResponseStatusCodeSame(int $expectedCode, string $message = '')``
+``assertResponseStatusCodeSame(int $expectedCode, string $message = '', bool $verbose = true)``
     Asserts a specific HTTP status code.
-``assertResponseRedirects(string $expectedLocation = null, int $expectedCode = null, string $message = '')``
+``assertResponseRedirects(?string $expectedLocation = null, ?int $expectedCode = null, string $message = '', bool $verbose = true)``
     Asserts the response is a redirect response (optionally, you can check
     the target location and status code). The excepted location can be either
     an absolute or a relative path.
@@ -969,17 +974,21 @@ Response Assertions
 ``assertResponseHeaderSame(string $headerName, string $expectedValue, string $message = '')``/``assertResponseHeaderNotSame(string $headerName, string $expectedValue, string $message = '')``
     Asserts the given header does (not) contain the expected value on the
     response, e.g. ``assertResponseHeaderSame('content-type', 'application/octet-stream');``.
-``assertResponseHasCookie(string $name, string $path = '/', string $domain = null, string $message = '')``/``assertResponseNotHasCookie(string $name, string $path = '/', string $domain = null, string $message = '')``
+``assertResponseHasCookie(string $name, string $path = '/', ?string $domain = null, string $message = '')``/``assertResponseNotHasCookie(string $name, string $path = '/', ?string $domain = null, string $message = '')``
     Asserts the given cookie is present in the response (optionally
     checking for a specific cookie path or domain).
-``assertResponseCookieValueSame(string $name, string $expectedValue, string $path = '/', string $domain = null, string $message = '')``
+``assertResponseCookieValueSame(string $name, string $expectedValue, string $path = '/', ?string $domain = null, string $message = '')``
     Asserts the given cookie is present and set to the expected value.
 ``assertResponseFormatSame(?string $expectedFormat, string $message = '')``
     Asserts the response format returned by the
     :method:`Symfony\\Component\\HttpFoundation\\Response::getFormat` method
     is the same as the expected value.
-``assertResponseIsUnprocessable(string $message = '')``
+``assertResponseIsUnprocessable(string $message = '', bool $verbose = true)``
     Asserts the response is unprocessable (HTTP status is 422)
+
+.. versionadded:: 7.1
+
+    The ``$verbose`` parameters were introduced in Symfony 7.1.
 
 Request Assertions
 ..................
@@ -993,10 +1002,10 @@ Request Assertions
 Browser Assertions
 ..................
 
-``assertBrowserHasCookie(string $name, string $path = '/', string $domain = null, string $message = '')``/``assertBrowserNotHasCookie(string $name, string $path = '/', string $domain = null, string $message = '')``
+``assertBrowserHasCookie(string $name, string $path = '/', ?string $domain = null, string $message = '')``/``assertBrowserNotHasCookie(string $name, string $path = '/', ?string $domain = null, string $message = '')``
     Asserts that the test Client does (not) have the given cookie set
     (meaning, the cookie was set by any response in the test).
-``assertBrowserCookieValueSame(string $name, string $expectedValue, string $path = '/', string $domain = null, string $message = '')``
+``assertBrowserCookieValueSame(string $name, string $expectedValue, string $path = '/', ?string $domain = null, string $message = '')``
     Asserts the given cookie in the test Client is set to the expected
     value.
 ``assertThatForClient(Constraint $constraint, string $message = '')``
@@ -1047,18 +1056,18 @@ Crawler Assertions
 Mailer Assertions
 .................
 
-``assertEmailCount(int $count, string $transport = null, string $message = '')``
+``assertEmailCount(int $count, ?string $transport = null, string $message = '')``
     Asserts that the expected number of emails was sent.
-``assertQueuedEmailCount(int $count, string $transport = null, string $message = '')``
+``assertQueuedEmailCount(int $count, ?string $transport = null, string $message = '')``
     Asserts that the expected number of emails was queued (e.g. using the
     Messenger component).
 ``assertEmailIsQueued(MessageEvent $event, string $message = '')``/``assertEmailIsNotQueued(MessageEvent $event, string $message = '')``
     Asserts that the given mailer event is (not) queued. Use
-    ``getMailerEvent(int $index = 0, string $transport = null)`` to
+    ``getMailerEvent(int $index = 0, ?string $transport = null)`` to
     retrieve a mailer event by index.
 ``assertEmailAttachmentCount(RawMessage $email, int $count, string $message = '')``
     Asserts that the given email has the expected number of attachments. Use
-    ``getMailerMessage(int $index = 0, string $transport = null)`` to
+    ``getMailerMessage(int $index = 0, ?string $transport = null)`` to
     retrieve a specific email by index.
 ``assertEmailTextBodyContains(RawMessage $email, string $text, string $message = '')``/``assertEmailTextBodyNotContains(RawMessage $email, string $text, string $message = '')``
     Asserts that the text body of the given email does (not) contain the
@@ -1082,10 +1091,10 @@ Mailer Assertions
 Notifier Assertions
 ...................
 
-``assertNotificationCount(int $count, string $transportName = null, string $message = '')``
+``assertNotificationCount(int $count, ?string $transportName = null, string $message = '')``
     Asserts that the given number of notifications has been created
     (in total or for the given transport).
-``assertQueuedNotificationCount(int $count, string $transportName = null, string $message = '')``
+``assertQueuedNotificationCount(int $count, ?string $transportName = null, string $message = '')``
     Asserts that the given number of notifications are queued
     (in total or for the given transport).
 ``assertNotificationIsQueued(MessageEvent $event, string $message = '')``
@@ -1113,7 +1122,7 @@ HttpClient Assertions
     For all the following assertions, ``$client->enableProfiler()`` must be
     called before the code that will trigger HTTP request(s).
 
-``assertHttpClientRequest(string $expectedUrl, string $expectedMethod = 'GET', string|array $expectedBody = null, array $expectedHeaders = [], string $httpClientId = 'http_client')``
+``assertHttpClientRequest(string $expectedUrl, string $expectedMethod = 'GET', string|array|null $expectedBody = null, array $expectedHeaders = [], string $httpClientId = 'http_client')``
     Asserts that the given URL has been called using, if specified,
     the given method body and headers. By default it will check on the HttpClient,
     but you can also pass a specific HttpClient ID.

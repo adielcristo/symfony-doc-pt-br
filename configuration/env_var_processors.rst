@@ -104,8 +104,9 @@ Symfony provides the following env var processors:
             };
 
 ``env(bool:FOO)``
-    Casts ``FOO`` to a bool (``true`` values are ``'true'``, ``'on'``, ``'yes'``
-    and all numbers except ``0`` and ``0.0``; everything else is ``false``):
+    Casts ``FOO`` to a bool (``true`` values are ``'true'``, ``'on'``, ``'yes'``,
+    all numbers except ``0`` and ``0.0`` and all numeric strings except ``'0'``
+    and ``'0.0'``; everything else is ``false``):
 
     .. configuration-block::
 
@@ -686,7 +687,7 @@ Symfony provides the following env var processors:
                 ],
             ]);
 
-    .. caution::
+    .. warning::
 
         In order to ease extraction of the resource from the URL, the leading
         ``/`` is trimmed from the ``path`` component.

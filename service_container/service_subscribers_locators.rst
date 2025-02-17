@@ -307,6 +307,14 @@ This is done by having ``getSubscribedServices()`` return an array of
         ];
     }
 
+.. deprecated:: 7.1
+
+    The :class:`Symfony\\Component\\DependencyInjection\\Attribute\\TaggedIterator`
+    and :class:`Symfony\\Component\\DependencyInjection\\Attribute\\TaggedLocator`
+    attributes were deprecated in Symfony 7.1 in favor of
+    :class:`Symfony\\Component\\DependencyInjection\\Attribute\\AutowireIterator`
+    and :class:`Symfony\\Component\\DependencyInjection\\Attribute\\AutowireLocator`.
+
 .. note::
 
     The above example requires using ``3.2`` version or newer of ``symfony/service-contracts``.
@@ -432,13 +440,13 @@ or directly via PHP attributes:
         namespace App;
 
         use Psr\Container\ContainerInterface;
-        use Symfony\Component\DependencyInjection\Attribute\TaggedLocator;
+        use Symfony\Component\DependencyInjection\Attribute\AutowireLocator;
 
         class CommandBus
         {
             public function __construct(
                 // creates a service locator with all the services tagged with 'app.handler'
-                #[TaggedLocator('app.handler')]
+                #[AutowireLocator('app.handler')]
                 private ContainerInterface $locator,
             ) {
             }
@@ -674,12 +682,12 @@ to index the services:
         namespace App;
 
         use Psr\Container\ContainerInterface;
-        use Symfony\Component\DependencyInjection\Attribute\TaggedLocator;
+        use Symfony\Component\DependencyInjection\Attribute\AutowireLocator;
 
         class CommandBus
         {
             public function __construct(
-                #[TaggedLocator('app.handler', indexAttribute: 'key')]
+                #[AutowireLocator('app.handler', indexAttribute: 'key')]
                 private ContainerInterface $locator,
             ) {
             }
@@ -789,12 +797,12 @@ get the value used to index the services:
         namespace App;
 
         use Psr\Container\ContainerInterface;
-        use Symfony\Component\DependencyInjection\Attribute\TaggedLocator;
+        use Symfony\Component\DependencyInjection\Attribute\AutowireLocator;
 
         class CommandBus
         {
             public function __construct(
-                #[TaggedLocator('app.handler', 'defaultIndexMethod: 'getLocatorKey')]
+                #[AutowireLocator('app.handler', defaultIndexMethod: 'getLocatorKey')]
                 private ContainerInterface $locator,
             ) {
             }
@@ -859,7 +867,7 @@ the following order:
 Service Subscriber Trait
 ------------------------
 
-The :class:`Symfony\\Contracts\\Service\\ServiceSubscriberTrait` provides an
+The :class:`Symfony\\Contracts\\Service\\ServiceMethodsSubscriberTrait` provides an
 implementation for :class:`Symfony\\Contracts\\Service\\ServiceSubscriberInterface`
 that looks through all methods in your class that are marked with the
 :class:`Symfony\\Contracts\\Service\\Attribute\\SubscribedService` attribute. It
@@ -873,12 +881,12 @@ services based on type-hinted helper methods::
     use Psr\Log\LoggerInterface;
     use Symfony\Component\Routing\RouterInterface;
     use Symfony\Contracts\Service\Attribute\SubscribedService;
+    use Symfony\Contracts\Service\ServiceMethodsSubscriberTrait;
     use Symfony\Contracts\Service\ServiceSubscriberInterface;
-    use Symfony\Contracts\Service\ServiceSubscriberTrait;
 
     class MyService implements ServiceSubscriberInterface
     {
-        use ServiceSubscriberTrait;
+        use ServiceMethodsSubscriberTrait;
 
         public function doSomething(): void
         {
@@ -898,6 +906,11 @@ services based on type-hinted helper methods::
             return $this->container->get(__METHOD__);
         }
     }
+
+.. versionadded:: 7.1
+
+    The ``ServiceMethodsSubscriberTrait`` was introduced in Symfony 7.1.
+    In previous Symfony versions it was called ``ServiceSubscriberTrait``.
 
 This  allows you to create helper traits like RouterAware, LoggerAware, etc...
 and compose your services with them::
@@ -935,12 +948,12 @@ and compose your services with them::
     // src/Service/MyService.php
     namespace App\Service;
 
+    use Symfony\Contracts\Service\ServiceMethodsSubscriberTrait;
     use Symfony\Contracts\Service\ServiceSubscriberInterface;
-    use Symfony\Contracts\Service\ServiceSubscriberTrait;
 
     class MyService implements ServiceSubscriberInterface
     {
-        use ServiceSubscriberTrait, LoggerAware, RouterAware;
+        use ServiceMethodsSubscriberTrait, LoggerAware, RouterAware;
 
         public function doSomething(): void
         {
@@ -949,7 +962,7 @@ and compose your services with them::
         }
     }
 
-.. caution::
+.. warning::
 
     When creating these helper traits, the service id cannot be ``__METHOD__``
     as this will include the trait name, not the class name. Instead, use
@@ -977,12 +990,12 @@ Here's an example::
     use Symfony\Component\DependencyInjection\Attribute\Target;
     use Symfony\Component\Routing\RouterInterface;
     use Symfony\Contracts\Service\Attribute\SubscribedService;
+    use Symfony\Contracts\Service\ServiceMethodsSubscriberTrait;
     use Symfony\Contracts\Service\ServiceSubscriberInterface;
-    use Symfony\Contracts\Service\ServiceSubscriberTrait;
 
     class MyService implements ServiceSubscriberInterface
     {
-        use ServiceSubscriberTrait;
+        use ServiceMethodsSubscriberTrait;
 
         public function doSomething(): void
         {

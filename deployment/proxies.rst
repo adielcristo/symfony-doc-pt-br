@@ -22,7 +22,11 @@ Solution: ``setTrustedProxies()``
 ---------------------------------
 
 To fix this, you need to tell Symfony which reverse proxy IP addresses to trust
-and what headers your reverse proxy uses to send information:
+and what headers your reverse proxy uses to send information.
+
+You can do that by setting the ``SYMFONY_TRUSTED_PROXIES`` and ``SYMFONY_TRUSTED_HEADERS``
+environment variables on your machine. Alternatively, you can configure them
+using the following configuration options:
 
 .. configuration-block::
 
@@ -93,7 +97,12 @@ and what headers your reverse proxy uses to send information:
     ``private_ranges`` as a shortcut for private IP address ranges for the
     ``trusted_proxies`` option was introduced in Symfony 7.1.
 
-.. caution::
+.. versionadded:: 7.2
+
+    Support for the ``SYMFONY_TRUSTED_PROXIES`` and ``SYMFONY_TRUSTED_HEADERS``
+    environment variables was introduced in Symfony 7.2.
+
+.. danger::
 
     Enabling the ``Request::HEADER_X_FORWARDED_HOST`` option exposes the
     application to `HTTP Host header attacks`_. Make sure the proxy really
@@ -143,8 +152,16 @@ In this case, you'll need to - *very carefully* - trust *all* proxies.
        framework:
            # ...
            # trust *all* requests (the 'REMOTE_ADDR' string is replaced at
-           # run time by $_SERVER['REMOTE_ADDR'])
+           # runtime by $_SERVER['REMOTE_ADDR'])
            trusted_proxies: '127.0.0.1,REMOTE_ADDR'
+
+           # you can also use the 'PRIVATE_SUBNETS' string, which is replaced at
+           # runtime by the IpUtils::PRIVATE_SUBNETS constant
+           # trusted_proxies: '127.0.0.1,PRIVATE_SUBNETS'
+
+.. versionadded:: 7.2
+
+    The support for the ``'PRIVATE_SUBNETS'`` string was introduced in Symfony 7.2.
 
 That's it! It's critical that you prevent traffic from all non-trusted sources.
 If you allow outside traffic, they could "spoof" their true IP address and
@@ -156,6 +173,35 @@ enough, as it will only trust the node sitting directly above your application
 (in this case your load balancer). You also need to append the IP addresses or
 ranges of any additional proxy (e.g. `CloudFront IP ranges`_) to the array of
 trusted proxies.
+
+Reverse proxy in a subpath / subfolder
+--------------------------------------
+
+If your Symfony application runs behind a reverse proxy and it's served in a
+subpath/subfolder, Symfony might generate incorrect URLs that ignore the
+subpath/subfolder of the reverse proxy.
+
+To fix this, you need to pass the subpath/subfolder route prefix of the reverse
+proxy to Symfony by setting the ``X-Forwarded-Prefix`` header. The header can
+normally be configured in your reverse proxy configuration. Configure
+``X-Forwarded-Prefix`` as trusted header to be able to use this feature.
+
+The ``X-Forwarded-Prefix`` is used by Symfony to prefix the base URL of request
+objects, which is used to generate absolute paths and URLs in Symfony applications.
+Without the header, the base URL would be only determined based on the configuration
+of the web server running Symfony, which leads to incorrect paths/URLs, when the
+application is served under a subpath/subfolder by a reverse proxy.
+
+For example if your Symfony application is directly served under a URL like
+``https://symfony.tld/`` and you would like to use a reverse proxy to serve the
+application under ``https://public.tld/app/``, you would need to set the
+``X-Forwarded-Prefix`` header to ``/app/`` in your reverse proxy configuration.
+Without the header, Symfony would generate URLs based on its server base URL
+(e.g. ``/my/route``) instead of the correct ``/app/my/route``, which is
+required to access the route via the reverse proxy.
+
+The header can be different for each reverse proxy, so that access via different
+reverse proxies served under different subpaths/subfolders can be handled correctly.
 
 Custom Headers When Using a Reverse Proxy
 -----------------------------------------

@@ -28,7 +28,7 @@ truly extensible.
 Take an example from :doc:`the HttpKernel component </components/http_kernel>`.
 Once a ``Response`` object has been created, it may be useful to allow other
 elements in the system to modify it (e.g. add some cache headers) before
-it's actually used. To make this possible, the Symfony kernel throws an
+it's actually used. To make this possible, the Symfony kernel dispatches an
 event - ``kernel.response``. Here's how it works:
 
 * A *listener* (PHP object) tells a central *dispatcher* object that it
@@ -476,11 +476,7 @@ with some other dispatchers:
 Learn More
 ----------
 
-.. toctree::
-    :maxdepth: 1
-
-    /components/event_dispatcher/generic_event
-
+* :doc:`/components/event_dispatcher/generic_event`
 * :ref:`The kernel.event_listener tag <dic-tags-kernel-event-listener>`
 * :ref:`The kernel.event_subscriber tag <dic-tags-kernel-event-subscriber>`
 

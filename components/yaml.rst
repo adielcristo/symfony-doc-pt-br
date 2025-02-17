@@ -214,6 +214,8 @@ During the parsing of the YAML contents, all the ``_`` characters are removed
 from the numeric literal contents, so there is not a limit in the number of
 underscores you can include or the way you group contents.
 
+.. _yaml-flags:
+
 Advanced Usage: Flags
 ---------------------
 
@@ -489,7 +491,7 @@ Add the ``--format`` option to get the output in JSON format:
 
 .. code-block:: terminal
 
-    $ php lint.php path/to/file.yaml --format json
+    $ php lint.php path/to/file.yaml --format=json
 
 .. tip::
 

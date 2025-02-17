@@ -30,7 +30,7 @@ The second section, "Working on Symfony Code", is targeted at Symfony
 contributors. This section lists detailed rules that every contributor needs to
 follow to ensure smooth upgrades for our users.
 
-.. caution::
+.. warning::
 
     :doc:`Experimental Features </contributing/code/experimental>` and code
     marked with the ``@internal`` tags are excluded from our Backward
@@ -53,7 +53,7 @@ All interfaces shipped with Symfony can be used in type hints. You can also call
 any of the methods that they declare. We guarantee that we won't break code that
 sticks to these rules.
 
-.. caution::
+.. warning::
 
     The exception to this rule are interfaces tagged with ``@internal``. Such
     interfaces should not be used or implemented.
@@ -89,7 +89,7 @@ Using our Classes
 All classes provided by Symfony may be instantiated and accessed through their
 public methods and properties.
 
-.. caution::
+.. warning::
 
     Classes, properties and methods that bear the tag ``@internal`` as well as
     the classes located in the various ``*\Tests\`` namespaces are an
@@ -146,7 +146,7 @@ Using our Traits
 
 All traits provided by Symfony may be used in your classes.
 
-.. caution::
+.. warning::
 
     The exception to this rule are traits tagged with ``@internal``. Such
     traits should not be used.
@@ -253,6 +253,14 @@ Make public or protected                                                  Yes
 Remove private property                                                   Yes
 **Constructors**
 Add constructor without mandatory arguments                               Yes             :ref:`[1] <note-1>`
+:ref:`Add argument without a default value <add-argument-public-method>`  No
+Add argument with a default value                                         Yes             :ref:`[11] <note-11>`
+Remove argument                                                           No              :ref:`[3] <note-3>`
+Add default value to an argument                                          Yes
+Remove default value of an argument                                       No
+Add type hint to an argument                                              No
+Remove type hint of an argument                                           Yes
+Change argument type                                                      No
 Remove constructor                                                        No
 Reduce visibility of a public constructor                                 No
 Reduce visibility of a protected constructor                              No              :ref:`[7] <note-7>`
@@ -468,6 +476,10 @@ a return type is only possible with a child type.
 constructors of Attribute classes. Using PHP named arguments might break your
 code when upgrading to newer Symfony versions.
 
+.. _note-11:
+
+**[11]** Only optional argument(s) of a constructor at last position may be added.
+
 Making Code Changes in a Backward Compatible Way
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -491,42 +503,42 @@ If that's the case, here is how to do it properly in a minor version:
 #. Add the argument as a comment in the signature::
 
     // the new argument can be optional
-    public function say(string $text, /* bool $stripWithespace = true */): void
+    public function say(string $text, /* bool $stripWhitespace = true */): void
     {
     }
 
     // or required
-    public function say(string $text, /* bool $stripWithespace */): void
+    public function say(string $text, /* bool $stripWhitespace */): void
     {
     }
 
 #. Document the new argument in a PHPDoc::
 
     /**
-     * @param bool $stripWithespace
+     * @param bool $stripWhitespace
      */
 
 #. Use ``func_num_args`` and ``func_get_arg`` to retrieve the argument in the
    method::
 
-        $stripWithespace = 2 <= \func_num_args() ? func_get_arg(1) : false;
+        $stripWhitespace = 2 <= \func_num_args() ? func_get_arg(1) : false;
 
    Note that the default value is ``false`` to keep the current behavior.
 
 #. If the argument has a default value that will change the current behavior,
    warn the user::
 
-    trigger_deprecation('symfony/COMPONENT', 'X.Y', 'Not passing the "bool $stripWithespace" argument explicitly is deprecated, its default value will change to X in Z.0.');
+    trigger_deprecation('symfony/COMPONENT', 'X.Y', 'Not passing the "bool $stripWhitespace" argument explicitly is deprecated, its default value will change to X in Z.0.');
 
 #. If the argument has no default value, warn the user that is going to be
    required in the next major version::
 
     if (\func_num_args() < 2) {
-        trigger_deprecation('symfony/COMPONENT', 'X.Y', 'The "%s()" method will have a new "bool $stripWithespace" argument in version Z.0, not defining it is deprecated.', __METHOD__);
+        trigger_deprecation('symfony/COMPONENT', 'X.Y', 'The "%s()" method will have a new "bool $stripWhitespace" argument in version Z.0, not defining it is deprecated.', __METHOD__);
 
-        $stripWithespace = false;
+        $stripWhitespace = false;
     } else {
-        $stripWithespace = func_get_arg(1);
+        $stripWhitespace = func_get_arg(1);
     }
 
 #. In the next major version (``X.0``), uncomment the argument, remove the

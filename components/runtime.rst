@@ -3,7 +3,7 @@ The Runtime Component
 
     The Runtime Component decouples the bootstrapping logic from any global state
     to make sure the application can run with runtimes like `PHP-PM`_, `ReactPHP`_,
-    `Swoole`_, etc. without any changes.
+    `Swoole`_, `FrankenPHP`_ etc. without any changes.
 
 Installation
 ------------
@@ -42,7 +42,7 @@ the component. This file runs the following logic:
 #. At last, the Runtime is used to run the application (i.e. calling
    ``$kernel->handle(Request::createFromGlobals())->send()``).
 
-.. caution::
+.. warning::
 
     If you use the Composer ``--no-plugins`` option, the ``autoload_runtime.php``
     file won't be created.
@@ -96,6 +96,23 @@ Use the ``APP_RUNTIME`` environment variable or by specifying the
             }
         }
     }
+
+If modifying the runtime class isn't enough, you can create your own runtime template:
+
+.. code-block:: json
+
+    {
+        "require": {
+            "...": "..."
+        },
+        "extra": {
+            "runtime": {
+                "autoload_template": "resources/runtime/autoload_runtime.template"
+            }
+        }
+    }
+
+Symfony provides a `runtime template file`_ that you can use to create your own.
 
 Using the Runtime
 -----------------
@@ -470,5 +487,7 @@ The end user will now be able to create front controller like::
 
 .. _PHP-PM: https://github.com/php-pm/php-pm
 .. _Swoole: https://openswoole.com/
+.. _FrankenPHP: https://frankenphp.dev/
 .. _ReactPHP: https://reactphp.org/
 .. _`PSR-15`: https://www.php-fig.org/psr/psr-15/
+.. _`runtime template file`: https://github.com/symfony/symfony/blob/{version}/src/Symfony/Component/Runtime/Internal/autoload_runtime.template

@@ -27,47 +27,119 @@ Generating UUIDs
 ~~~~~~~~~~~~~~~~
 
 Use the named constructors of the ``Uuid`` class or any of the specific classes
-to create each type of UUID::
+to create each type of UUID:
+
+**UUID v1** (time-based)
+
+Generates the UUID using a timestamp and the MAC address of your device
+(`read UUIDv1 spec <https://datatracker.ietf.org/doc/html/draft-ietf-uuidrev-rfc4122bis#name-uuid-version-1>`__).
+Both are obtained automatically, so you don't have to pass any constructor argument::
 
     use Symfony\Component\Uid\Uuid;
 
-    // UUID type 1 generates the UUID using the MAC address of your device and a timestamp.
-    // Both are obtained automatically, so you don't have to pass any constructor argument.
-    $uuid = Uuid::v1(); // $uuid is an instance of Symfony\Component\Uid\UuidV1
+    // $uuid is an instance of Symfony\Component\Uid\UuidV1
+    $uuid = Uuid::v1();
 
-    // UUID type 4 generates a random UUID, so you don't have to pass any constructor argument.
-    $uuid = Uuid::v4(); // $uuid is an instance of Symfony\Component\Uid\UuidV4
+.. tip::
 
-    // UUID type 3 and 5 generate a UUID hashing the given namespace and name. Type 3 uses
-    // MD5 hashes and Type 5 uses SHA-1. The namespace is another UUID (e.g. a Type 4 UUID)
-    // and the name is an arbitrary string (e.g. a product name; if it's unique).
-    $namespace = Uuid::v4();
-    $name = $product->getUniqueName();
+    It's recommended to use UUIDv7 instead of UUIDv1 because it provides
+    better entropy.
 
-    $uuid = Uuid::v3($namespace, $name); // $uuid is an instance of Symfony\Component\Uid\UuidV3
-    $uuid = Uuid::v5($namespace, $name); // $uuid is an instance of Symfony\Component\Uid\UuidV5
+**UUID v2** (DCE security)
 
-    // the namespaces defined by RFC 4122 (see https://tools.ietf.org/html/rfc4122#appendix-C)
-    // are available as PHP constants and as string values
-    $uuid = Uuid::v3(Uuid::NAMESPACE_DNS, $name);  // same as: Uuid::v3('dns', $name);
-    $uuid = Uuid::v3(Uuid::NAMESPACE_URL, $name);  // same as: Uuid::v3('url', $name);
-    $uuid = Uuid::v3(Uuid::NAMESPACE_OID, $name);  // same as: Uuid::v3('oid', $name);
-    $uuid = Uuid::v3(Uuid::NAMESPACE_X500, $name); // same as: Uuid::v3('x500', $name);
+Similar to UUIDv1 but with a very high likelihood of ID collision
+(`read UUIDv2 spec <https://datatracker.ietf.org/doc/html/draft-ietf-uuidrev-rfc4122bis#name-uuid-version-2>`__).
+It's part of the authentication mechanism of DCE (Distributed Computing Environment)
+and the UUID includes the POSIX UIDs (user/group ID) of the user who generated it.
+This UUID variant is **not implemented** by the Uid component.
 
-    // UUID type 6 is not yet part of the UUID standard. It's lexicographically sortable
-    // (like ULIDs) and contains a 60-bit timestamp and 63 extra unique bits.
-    // It's defined in https://www.ietf.org/archive/id/draft-peabody-dispatch-new-uuid-format-04.html#name-uuid-version-6
-    $uuid = Uuid::v6(); // $uuid is an instance of Symfony\Component\Uid\UuidV6
+**UUID v3** (name-based, MD5)
 
-    // UUID version 7 features a time-ordered value field derived from the well known
-    // Unix Epoch timestamp source: the number of seconds since midnight 1 Jan 1970 UTC, leap seconds excluded.
-    // As well as improved entropy characteristics over versions 1 or 6.
+Generates UUIDs from names that belong, and are unique within, some given namespace
+(`read UUIDv3 spec <https://datatracker.ietf.org/doc/html/draft-ietf-uuidrev-rfc4122bis#name-uuid-version-3>`__).
+This variant is useful to generate deterministic UUIDs from arbitrary strings.
+It works by populating the UUID contents with the``md5`` hash of concatenating
+the namespace and the name::
+
+    use Symfony\Component\Uid\Uuid;
+
+    // you can use any of the predefined namespaces...
+    $namespace = Uuid::fromString(Uuid::NAMESPACE_OID);
+    // ...or use a random namespace:
+    // $namespace = Uuid::v4();
+
+    // $name can be any arbitrary string
+    // $uuid is an instance of Symfony\Component\Uid\UuidV3
+    $uuid = Uuid::v3($namespace, $name);
+
+These are the default namespaces defined by the standard:
+
+* ``Uuid::NAMESPACE_DNS`` if you are generating UUIDs for `DNS entries <https://en.wikipedia.org/wiki/Domain_Name_System>`__
+* ``Uuid::NAMESPACE_URL`` if you are generating UUIDs for `URLs <https://en.wikipedia.org/wiki/URL>`__
+* ``Uuid::NAMESPACE_OID`` if you are generating UUIDs for `OIDs (object identifiers) <https://en.wikipedia.org/wiki/Object_identifier>`__
+* ``Uuid::NAMESPACE_X500`` if you are generating UUIDs for `X500 DNs (distinguished names) <https://en.wikipedia.org/wiki/X.500>`__
+
+**UUID v4** (random)
+
+Generates a random UUID (`read UUIDv4 spec <https://datatracker.ietf.org/doc/html/draft-ietf-uuidrev-rfc4122bis#name-uuid-version-4>`__).
+Because of its randomness, it ensures uniqueness across distributed systems
+without the need for a central coordinating entity. It's privacy-friendly
+because it doesn't contain any information about where and when it was generated::
+
+    use Symfony\Component\Uid\Uuid;
+
+    // $uuid is an instance of Symfony\Component\Uid\UuidV4
+    $uuid = Uuid::v4();
+
+**UUID v5** (name-based, SHA-1)
+
+It's the same as UUIDv3 (explained above) but it uses ``sha1`` instead of
+``md5`` to hash the given namespace and name (`read UUIDv5 spec <https://datatracker.ietf.org/doc/html/draft-ietf-uuidrev-rfc4122bis#name-uuid-version-5>`__).
+This makes it more secure and less prone to hash collisions.
+
+.. _uid-uuid-v6:
+
+**UUID v6** (reordered time-based)
+
+It rearranges the time-based fields of the UUIDv1 to make it lexicographically
+sortable (like :ref:`ULIDs <ulid>`). It's more efficient for database indexing
+(`read UUIDv6 spec <https://datatracker.ietf.org/doc/html/draft-ietf-uuidrev-rfc4122bis#name-uuid-version-6>`__)::
+
+    use Symfony\Component\Uid\Uuid;
+
+    // $uuid is an instance of Symfony\Component\Uid\UuidV6
+    $uuid = Uuid::v6();
+
+.. tip::
+
+    It's recommended to use UUIDv7 instead of UUIDv6 because it provides
+    better entropy.
+
+.. _uid-uuid-v7:
+
+**UUID v7** (UNIX timestamp)
+
+Generates time-ordered UUIDs based on a high-resolution Unix Epoch timestamp
+source (the number of milliseconds since midnight 1 Jan 1970 UTC, leap seconds excluded)
+(`read UUIDv7 spec <https://datatracker.ietf.org/doc/html/draft-ietf-uuidrev-rfc4122bis#name-uuid-version-7>`__).
+It's recommended to use this version over UUIDv1 and UUIDv6 because it provides
+better entropy (and a more strict chronological order of UUID generation)::
+
+    use Symfony\Component\Uid\Uuid;
+
+    // $uuid is an instance of Symfony\Component\Uid\UuidV7
     $uuid = Uuid::v7();
 
-    // UUID version 8 provides an RFC-compatible format for experimental or vendor-specific use cases.
-    // The only requirement is that the variant and version bits MUST be set as defined in Section 4:
-    // https://www.ietf.org/archive/id/draft-peabody-dispatch-new-uuid-format-04.html#variant_and_version_fields
-    // UUIDv8 uniqueness will be implementation-specific and SHOULD NOT be assumed.
+**UUID v8** (custom)
+
+Provides an RFC-compatible format for experimental or vendor-specific use cases
+(`read UUIDv8 spec <https://datatracker.ietf.org/doc/html/draft-ietf-uuidrev-rfc4122bis#name-uuid-version-8>`__).
+The only requirement is to set the variant and version bits of the UUID. The rest
+of the UUID value is specific to each implementation and no format should be assumed::
+
+    use Symfony\Component\Uid\Uuid;
+
+    // $uuid is an instance of Symfony\Component\Uid\UuidV8
     $uuid = Uuid::v8();
 
 If your UUID value is already generated in another format, use any of the
@@ -242,6 +314,31 @@ UUID objects created with the ``Uuid`` class can use the following methods
     //   * int < 0 if $uuid1 is less than $uuid4
     $uuid1->compare($uuid4); // e.g. int(4)
 
+If you're working with different UUIDs format and want to validate them,
+you can use the ``$format`` parameter of the :method:`Symfony\\Component\\Uid\\Uuid::isValid`
+method to specify the UUID format you're expecting::
+
+    use Symfony\Component\Uid\Uuid;
+
+    $isValid = Uuid::isValid('90067ce4-f083-47d2-a0f4-c47359de0f97', Uuid::FORMAT_RFC_4122); // accept only RFC 4122 UUIDs
+    $isValid = Uuid::isValid('3aJ7CNpDMfXPZrCsn4Cgey', Uuid::FORMAT_BASE_32 | Uuid::FORMAT_BASE_58); // accept multiple formats
+
+The following constants are available:
+
+* ``Uuid::FORMAT_BINARY``
+* ``Uuid::FORMAT_BASE_32``
+* ``Uuid::FORMAT_BASE_58``
+* ``Uuid::FORMAT_RFC_4122``
+* ``Uuid::FORMAT_RFC_9562`` (equivalent to ``Uuid::FORMAT_RFC_4122``)
+
+You can also use the ``Uuid::FORMAT_ALL`` constant to accept any UUID format.
+By default, only the RFC 4122 format is accepted.
+
+.. versionadded:: 7.2
+
+    The ``$format`` parameter of the :method:`Symfony\\Component\\Uid\\Uuid::isValid`
+    method and the related constants were introduced in Symfony 7.2.
+
 Storing UUIDs in Databases
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -289,6 +386,14 @@ entity primary keys::
         // ...
     }
 
+.. warning::
+
+    Using UUIDs as primary keys is usually not recommended for performance reasons:
+    indexes are slower and take more space (because UUIDs in binary format take
+    128 bits instead of 32/64 bits for auto-incremental integers) and the non-sequential
+    nature of UUIDs fragments indexes. :ref:`UUID v6 <uid-uuid-v6>` and :ref:`UUID v7 <uid-uuid-v7>`
+    are the only variants that solve the fragmentation issue (but the index size issue remains).
+
 When using built-in Doctrine repository methods (e.g. ``findOneBy()``), Doctrine
 knows how to convert these UUID types to build the SQL query
 (e.g. ``->findOneBy(['user' => $user->getUuid()])``). However, when using DQL
@@ -298,6 +403,7 @@ of the UUID parameters::
     // src/Repository/ProductRepository.php
 
     // ...
+    use Doctrine\DBAL\ParameterType;
     use Symfony\Bridge\Doctrine\Types\UuidType;
 
     class ProductRepository extends ServiceEntityRepository
@@ -313,7 +419,7 @@ of the UUID parameters::
 
                 // alternatively, you can convert it to a value compatible with
                 // the type inferred by Doctrine
-                ->setParameter('user', $user->getUuid()->toBinary())
+                ->setParameter('user', $user->getUuid()->toBinary(), ParameterType::BINARY)
             ;
 
             // ...
@@ -466,8 +572,14 @@ entity primary keys::
         }
 
         // ...
-
     }
+
+.. warning::
+
+    Using ULIDs as primary keys is usually not recommended for performance reasons.
+    Although ULIDs don't suffer from index fragmentation issues (because the values
+    are sequential), their indexes are slower and take more space (because ULIDs
+    in binary format take 128 bits instead of 32/64 bits for auto-incremental integers).
 
 When using built-in Doctrine repository methods (e.g. ``findOneBy()``), Doctrine
 knows how to convert these ULID types to build the SQL query

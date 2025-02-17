@@ -1,11 +1,9 @@
 How to Create your Custom Context Builder
 =========================================
 
-The :doc:`Serializer Component </components/serializer>` uses Normalizers
-and Encoders to transform any data to any data-structure (e.g. JSON).
-That serialization process can be configured thanks to a
-:ref:`serialization context <serializer_serializer-context>`, which can be built thanks to
-:ref:`context builders <component-serializer-context-builders>`.
+That serialization process of the :doc:`Serializer Component </serializer>`
+can be configured by the :ref:`serialization context <serializer-context>`,
+which can be built thanks to :ref:`context builders <serializer-using-context-builders>`.
 
 Each built-in normalizer/encoder has its related context builder. However, you
 may want to create a custom context builder for your
@@ -29,7 +27,7 @@ value is ``0000-00-00``. To do that you'll first have to create your normalizer:
     {
         use DenormalizerAwareTrait;
 
-        public function denormalize($data, string $type, string $format = null, array $context = []): mixed
+        public function denormalize($data, string $type, ?string $format = null, array $context = []): mixed
         {
             if ('0000-00-00' === $data) {
                 return null;
@@ -40,7 +38,7 @@ value is ``0000-00-00``. To do that you'll first have to create your normalizer:
             return $this->denormalizer->denormalize($data, $type, $format, $context);
         }
 
-        public function supportsDenormalization($data, string $type, string $format = null, array $context = []): bool
+        public function supportsDenormalization($data, string $type, ?string $format = null, array $context = []): bool
         {
             return true === ($context['zero_datetime_to_null'] ?? false)
                 && is_a($type, \DateTimeInterface::class, true);

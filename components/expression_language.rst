@@ -80,15 +80,10 @@ The main class of the component is
 Null Coalescing Operator
 ........................
 
-This is the same as the PHP `null-coalescing operator`_, which combines
-the ternary operator and ``isset()``. It returns the left hand-side if it exists
-and it's not ``null``; otherwise it returns the right hand-side. Note that you
-can chain multiple coalescing operators.
+.. note::
 
-* ``foo ?? 'no'``
-* ``foo.baz ?? 'no'``
-* ``foo[3] ?? 'no'``
-* ``foo.baz ?? foo['baz'] ?? 'no'``
+    This content has been moved to the :ref:`null coalescing operator <component-expression-null-coalescing-operator>`
+    section of ExpressionLanguage syntax reference page.
 
 Parsing and Linting Expressions
 ...............................
@@ -98,17 +93,22 @@ The :method:`Symfony\\Component\\ExpressionLanguage\\ExpressionLanguage::parse`
 method returns a :class:`Symfony\\Component\\ExpressionLanguage\\ParsedExpression`
 instance that can be used to inspect and manipulate the expression. The
 :method:`Symfony\\Component\\ExpressionLanguage\\ExpressionLanguage::lint`, on the
-other hand, returns a boolean indicating if the expression is valid or not::
+other hand, throws a :class:`Symfony\\Component\\ExpressionLanguage\\SyntaxError`
+if the expression is not valid::
 
     use Symfony\Component\ExpressionLanguage\ExpressionLanguage;
 
     $expressionLanguage = new ExpressionLanguage();
 
-    var_dump($expressionLanguage->parse('1 + 2'));
+    var_dump($expressionLanguage->parse('1 + 2', []));
     // displays the AST nodes of the expression which can be
     // inspected and manipulated
 
-    var_dump($expressionLanguage->lint('1 + 2')); // displays true
+    $expressionLanguage->lint('1 + 2', []); // doesn't throw anything
+
+    $expressionLanguage->lint('1 + a', []);
+    // throws a SyntaxError exception:
+    // "Variable "a" is not valid around position 5 for expression `1 + a`."
 
 The behavior of these methods can be configured with some flags defined in the
 :class:`Symfony\\Component\\ExpressionLanguage\\Parser` class:
@@ -125,8 +125,8 @@ This is how you can use these flags::
 
     $expressionLanguage = new ExpressionLanguage();
 
-    // this returns true because the unknown variables and functions are ignored
-    var_dump($expressionLanguage->lint('unknown_var + unknown_function()', Parser::IGNORE_UNKNOWN_VARIABLES | Parser::IGNORE_UNKNOWN_FUNCTIONS));
+    // does not throw a SyntaxError because the unknown variables and functions are ignored
+    $expressionLanguage->lint('unknown_var + unknown_function()', [], Parser::IGNORE_UNKNOWN_VARIABLES | Parser::IGNORE_UNKNOWN_FUNCTIONS);
 
 .. versionadded:: 7.1
 
@@ -165,13 +165,6 @@ expressions (e.g. the request, the current user, etc.):
 * :doc:`Variables available in security expressions </security/expressions>`;
 * :doc:`Variables available in service container expressions </service_container/expression_language>`;
 * :ref:`Variables available in routing expressions <routing-matching-expressions>`.
-
-.. caution::
-
-    When using variables in expressions, avoid passing untrusted data into the
-    array of variables. If you can't avoid that, sanitize non-alphanumeric
-    characters in untrusted data to prevent malicious users from injecting
-    control characters and altering the expression.
 
 .. _expression-language-caching:
 
@@ -413,7 +406,7 @@ or by using the second argument of the constructor::
 
         class ExpressionLanguage extends BaseExpressionLanguage
         {
-            public function __construct(CacheItemPoolInterface $cache = null, array $providers = [])
+            public function __construct(?CacheItemPoolInterface $cache = null, array $providers = [])
             {
                 // prepends the default provider to let users override it
                 array_unshift($providers, new StringExpressionLanguageProvider());

@@ -25,7 +25,7 @@ This means that the following scenarios will work:
   either the LDAP form login or LDAP HTTP Basic authentication providers.
 
 * Checking a user's password against an LDAP server while fetching user
-  information from another source (database using FOSUserBundle, for
+  information from another source (like your main database for
   example).
 
 * Loading user information from an LDAP server, while using another
@@ -197,14 +197,14 @@ use the ``ldap`` user provider.
             ;
         };
 
-.. caution::
+.. danger::
 
     The Security component escapes provided input data when the LDAP user
     provider is used. However, the LDAP component itself does not provide
     any escaping yet. Thus, it's your responsibility to prevent LDAP injection
     attacks when using the component directly.
 
-.. caution::
+.. warning::
 
     The user configured above in the user provider is only used to retrieve
     data. It's a static user defined by its username and password (for improved
